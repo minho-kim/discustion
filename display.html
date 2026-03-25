@@ -205,6 +205,7 @@
     let finaleNodes = [];
     let finaleAnimationFrame = null;
     let displayChannel = null;
+    let renderRequestId = 0;
 
     function formatTime(seconds) {
       const safeSeconds = Math.max(0, seconds);
@@ -384,11 +385,33 @@
       }
     }
 
-    async function loadAndRender() {
+    async function loadAndRender(stateOverride, options) {
+      const requestId = ++renderRequestId;
+
       try {
-        const res = await appStore.fetchDisplayPayload();
+        const state = stateOverride
+          ? appStore.hydrateState(stateOverride)
+          : await appStore.fetchState();
+        const cachedPayload = !options || !options.forcePages
+          ? appStore.buildDisplayPayloadFromStateSync(state)
+          : null;
+
+        if (cachedPayload) {
+          renderScreen(cachedPayload);
+        }
+
+        const res = await appStore.fetchDisplayPayloadForState(state, options);
+
+        if (requestId !== renderRequestId) {
+          return;
+        }
+
         renderScreen(res);
       } catch (error) {
+        if (requestId !== renderRequestId) {
+          return;
+        }
+
         stopFinale();
         document.getElementById('displayView').style.display = 'none';
         document.getElementById('finaleView').style.display = 'none';
@@ -396,6 +419,39 @@
         waitingView.style.display = 'flex';
         waitingView.innerText = '연결 오류가 발생했습니다. DB 설정과 Realtime 상태를 확인해 주세요.';
       }
+    }
+
+    async function handlePresentationChange(payload) {
+      if (payload.table === appStore.config.pagesTable) {
+        const changedTeamId = (payload.new && payload.new.team_id) || (payload.old && payload.old.team_id);
+
+        if (changedTeamId) {
+          appStore.invalidateTeamPages(changedTeamId);
+        } else {
+          appStore.invalidateAllPages();
+        }
+
+        const cachedState = appStore.getCachedState();
+        const isCurrentTeam = String(cachedState.current_team_id || '') === String(changedTeamId || '');
+
+        if (cachedState.mode === 'finale') {
+          await loadAndRender(cachedState, { forceTitles: true });
+          return;
+        }
+
+        if (cachedState.mode === 'show' && isCurrentTeam) {
+          await loadAndRender(cachedState, { forcePages: true });
+        }
+
+        return;
+      }
+
+      if (payload.table === appStore.config.stateTable && payload.new) {
+        await loadAndRender(payload.new);
+        return;
+      }
+
+      await loadAndRender();
     }
 
     window.addEventListener('beforeunload', function () {
@@ -408,7 +464,7 @@
     });
 
     loadAndRender();
-    displayChannel = appStore.subscribeToPresentationChanges('presentation-display', loadAndRender);
+    displayChannel = appStore.subscribeToPresentationChanges('presentation-display', handlePresentationChange);
   </script>
 </body>
 </html>

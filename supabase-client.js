@@ -5,6 +5,10 @@
 
   const { createClient } = window.supabase;
   const config = window.PRESENTATION_SUPABASE_CONFIG;
+  const pagesCache = new Map();
+  let titlesCache = null;
+  let stateCache = null;
+  let hasFetchedState = false;
 
   const client = createClient(config.url, config.publishableKey, {
     auth: {
@@ -31,11 +35,22 @@
     return Object.assign(getDefaultState(), row || {});
   }
 
+  function cacheState(row) {
+    stateCache = normalizeState(row);
+    hasFetchedState = true;
+    return stateCache;
+  }
+
+  function getCachedState() {
+    return normalizeState(stateCache);
+  }
+
   function buildTimerData(state) {
+    const safeState = state || {};
     return {
-      state: state.timer_state || 'reset',
-      remain: Number.isFinite(state.timer_remain_secs) ? state.timer_remain_secs : 0,
-      lastAction: state.timer_last_action_at || new Date().toISOString()
+      state: safeState.timer_state || 'reset',
+      remain: Number.isFinite(safeState.timer_remain_secs) ? safeState.timer_remain_secs : 0,
+      lastAction: safeState.timer_last_action_at || new Date().toISOString()
     };
   }
 
@@ -66,12 +81,19 @@
       throw error;
     }
 
-    return normalizeState(data);
+    return cacheState(data);
   }
 
-  async function fetchPages(teamId) {
+  async function fetchPages(teamId, options) {
     if (!teamId) {
       return [];
+    }
+
+    const force = Boolean(options && options.force);
+    const cacheKey = String(teamId);
+
+    if (!force && pagesCache.has(cacheKey)) {
+      return pagesCache.get(cacheKey);
     }
 
     const { data, error } = await client
@@ -84,10 +106,18 @@
       throw error;
     }
 
-    return data || [];
+    const pages = data || [];
+    pagesCache.set(cacheKey, pages);
+    return pages;
   }
 
-  async function fetchAllTitles() {
+  async function fetchAllTitles(options) {
+    const force = Boolean(options && options.force);
+
+    if (!force && Array.isArray(titlesCache)) {
+      return titlesCache;
+    }
+
     const { data, error } = await client
       .from(config.pagesTable)
       .select('team_id, page_no, title')
@@ -98,9 +128,36 @@
       throw error;
     }
 
-    return (data || []).filter(function (row) {
+    titlesCache = (data || []).filter(function (row) {
       return row.title;
     });
+
+    return titlesCache;
+  }
+
+  function invalidateTeamPages(teamId) {
+    if (teamId) {
+      pagesCache.delete(String(teamId));
+    }
+
+    titlesCache = null;
+  }
+
+  function invalidateAllPages() {
+    pagesCache.clear();
+    titlesCache = null;
+  }
+
+  function getCachedPages(teamId) {
+    if (!teamId) {
+      return null;
+    }
+
+    return pagesCache.get(String(teamId)) || null;
+  }
+
+  function getCachedTitles() {
+    return Array.isArray(titlesCache) ? titlesCache : null;
   }
 
   async function savePages(teamId, pagesData) {
@@ -130,32 +187,56 @@
     if (deleteError) {
       throw deleteError;
     }
+
+    invalidateTeamPages(teamId);
   }
 
   async function setState(partialState) {
-    const currentState = await fetchState();
+    const currentState = hasFetchedState ? getCachedState() : await fetchState();
     const nextState = Object.assign({}, currentState, partialState, {
       id: config.stateRowId,
       updated_at: new Date().toISOString()
     });
 
-    const { error } = await client
+    const { data, error } = await client
       .from(config.stateTable)
-      .upsert(nextState);
+      .update(nextState)
+      .eq('id', config.stateRowId)
+      .select('*')
+      .maybeSingle();
 
     if (error) {
       throw error;
     }
 
-    return nextState;
+    if (data) {
+      return cacheState(data);
+    }
+
+    const { data: upsertedData, error: upsertError } = await client
+      .from(config.stateTable)
+      .upsert(nextState)
+      .select('*')
+      .single();
+
+    if (upsertError) {
+      throw upsertError;
+    }
+
+    return cacheState(upsertedData);
   }
 
-  async function fetchDisplayPayload() {
-    const state = await fetchState();
-    const timer = buildTimerData(state);
+  function buildDisplayPayloadFromStateSync(state) {
+    const normalizedState = cacheState(state);
+    const timer = buildTimerData(normalizedState);
 
-    if (state.mode === 'finale') {
-      const titles = await fetchAllTitles();
+    if (normalizedState.mode === 'finale') {
+      const titles = getCachedTitles();
+
+      if (!titles) {
+        return null;
+      }
+
       return {
         status: 'finale',
         titles: titles.map(function (row) {
@@ -168,36 +249,97 @@
       };
     }
 
-    if (state.mode !== 'show' || !state.current_team_id) {
+    if (normalizedState.mode !== 'show' || !normalizedState.current_team_id) {
       return {
         status: 'waiting',
         timer: timer
       };
     }
 
-    const pages = await fetchPages(state.current_team_id);
+    const pages = getCachedPages(normalizedState.current_team_id);
+
+    if (!pages) {
+      return null;
+    }
 
     if (!pages.length) {
       return {
         status: 'nodata',
-        teamId: state.current_team_id,
+        teamId: normalizedState.current_team_id,
         timer: timer
       };
     }
 
     const pageMatch = pages.find(function (page) {
-      return page.page_no === state.current_page_no;
+      return page.page_no === normalizedState.current_page_no;
     }) || pages[0];
 
     return {
       status: 'show',
-      teamId: state.current_team_id,
+      teamId: normalizedState.current_team_id,
       currentPage: pageMatch.page_no,
       totalPages: pages.length,
       title: pageMatch.title,
       content: pageMatch.content,
       timer: timer
     };
+  }
+
+  async function fetchDisplayPayloadForState(state, options) {
+    const normalizedState = cacheState(state);
+    const timer = buildTimerData(normalizedState);
+
+    if (normalizedState.mode === 'finale') {
+      const titles = await fetchAllTitles({ force: Boolean(options && options.forceTitles) });
+      return {
+        status: 'finale',
+        titles: titles.map(function (row) {
+          return {
+            team: row.team_id,
+            title: row.title
+          };
+        }),
+        timer: timer
+      };
+    }
+
+    if (normalizedState.mode !== 'show' || !normalizedState.current_team_id) {
+      return {
+        status: 'waiting',
+        timer: timer
+      };
+    }
+
+    const pages = await fetchPages(normalizedState.current_team_id, {
+      force: Boolean(options && options.forcePages)
+    });
+
+    if (!pages.length) {
+      return {
+        status: 'nodata',
+        teamId: normalizedState.current_team_id,
+        timer: timer
+      };
+    }
+
+    const pageMatch = pages.find(function (page) {
+      return page.page_no === normalizedState.current_page_no;
+    }) || pages[0];
+
+    return {
+      status: 'show',
+      teamId: normalizedState.current_team_id,
+      currentPage: pageMatch.page_no,
+      totalPages: pages.length,
+      title: pageMatch.title,
+      content: pageMatch.content,
+      timer: timer
+    };
+  }
+
+  async function fetchDisplayPayload(options) {
+    const state = await fetchState();
+    return fetchDisplayPayloadForState(state, options);
   }
 
   function subscribeToPresentationChanges(channelName, callback) {
@@ -241,8 +383,15 @@
     savePages: savePages,
     setState: setState,
     fetchDisplayPayload: fetchDisplayPayload,
+    fetchDisplayPayloadForState: fetchDisplayPayloadForState,
+    buildDisplayPayloadFromStateSync: buildDisplayPayloadFromStateSync,
     buildTimerData: buildTimerData,
     computeRemainingSeconds: computeRemainingSeconds,
+    getCachedState: getCachedState,
+    hydrateState: cacheState,
+    getCachedPages: getCachedPages,
+    invalidateTeamPages: invalidateTeamPages,
+    invalidateAllPages: invalidateAllPages,
     subscribeToPresentationChanges: subscribeToPresentationChanges,
     unsubscribe: unsubscribe
   };

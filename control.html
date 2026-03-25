@@ -312,6 +312,7 @@
       lastAction: new Date().toISOString()
     };
     let controlChannel = null;
+    let refreshRequestId = 0;
 
     function showModal(msg) {
       document.getElementById('modalText').innerText = msg;
@@ -337,6 +338,12 @@
       }
     }
 
+    function renderControlStatus() {
+      document.getElementById('curP').innerText = currentPageNo;
+      document.getElementById('totalP').innerText = totalPageCount;
+      renderTeamButtons();
+    }
+
     function clampPageNumber(pageNumber) {
       if (pageNumber < 1) {
         return 1;
@@ -354,17 +361,57 @@
       return Number.isFinite(mins) && mins >= 0 ? mins : 5;
     }
 
+    async function syncTeamPages(teamId, force) {
+      if (!teamId) {
+        totalPageCount = 1;
+        return [];
+      }
+
+      const pages = await appStore.fetchPages(teamId, { force: Boolean(force) });
+      totalPageCount = Math.max(1, pages.length);
+      currentPageNo = clampPageNumber(currentPageNo);
+      renderControlStatus();
+      return pages;
+    }
+
+    async function applyStateToUi(state, options) {
+      const normalizedState = appStore.hydrateState(state);
+      timerSnapshot = appStore.buildTimerData(normalizedState);
+
+      if (normalizedState.mode === 'show' && normalizedState.current_team_id) {
+        currentTeamId = normalizedState.current_team_id;
+        currentPageNo = normalizedState.current_page_no || 1;
+        await syncTeamPages(currentTeamId, options && options.forcePages);
+      } else {
+        currentTeamId = null;
+        currentPageNo = 1;
+        totalPageCount = 1;
+        renderControlStatus();
+      }
+
+      if (normalizedState.timer_state === 'reset') {
+        document.getElementById('minInput').value = Math.max(
+          0,
+          Math.floor((normalizedState.timer_remain_secs || 0) / 60)
+        );
+      }
+    }
+
     async function selectTeam(id) {
       currentTeamId = id;
       currentPageNo = 1;
+      totalPageCount = Math.max(1, totalPageCount);
+      renderControlStatus();
 
       try {
-        await appStore.setState({
+        const nextState = await appStore.setState({
           mode: 'show',
           current_team_id: id,
           current_page_no: 1
         });
+        await applyStateToUi(nextState);
       } catch (error) {
+        refreshStatus();
         showModal('조 선택 실패: ' + (error.message || '권한 또는 연결 상태를 확인해 주세요.'));
       }
     }
@@ -388,14 +435,18 @@
       }
 
       const target = clampPageNumber(currentPageNo + delta);
+      currentPageNo = target;
+      renderControlStatus();
 
       try {
-        await appStore.setState({
+        const nextState = await appStore.setState({
           mode: 'show',
           current_team_id: currentTeamId,
           current_page_no: target
         });
+        await applyStateToUi(nextState);
       } catch (error) {
+        refreshStatus();
         showModal('페이지 이동 실패: ' + (error.message || '연결 상태를 확인해 주세요.'));
       }
     }
@@ -419,35 +470,51 @@
       }
     }
 
-    async function refreshStatus() {
+    async function refreshStatus(stateOverride, options) {
+      const requestId = ++refreshRequestId;
+
       try {
-        const state = await appStore.fetchState();
-        timerSnapshot = appStore.buildTimerData(state);
+        const state = stateOverride
+          ? appStore.hydrateState(stateOverride)
+          : await appStore.fetchState();
 
-        if (state.mode === 'show' && state.current_team_id) {
-          currentTeamId = state.current_team_id;
-          const pages = await appStore.fetchPages(currentTeamId);
-          totalPageCount = Math.max(1, pages.length);
-          currentPageNo = clampPageNumber(state.current_page_no || 1);
-        } else {
-          currentTeamId = null;
-          currentPageNo = 1;
-          totalPageCount = 1;
+        await applyStateToUi(state, options);
+
+        if (requestId !== refreshRequestId) {
+          return;
         }
-
-        if (state.timer_state === 'reset') {
-          document.getElementById('minInput').value = Math.max(
-            0,
-            Math.floor((state.timer_remain_secs || 0) / 60)
-          );
-        }
-
-        document.getElementById('curP').innerText = currentPageNo;
-        document.getElementById('totalP').innerText = totalPageCount;
-        renderTeamButtons();
       } catch (error) {
         showModal('상태 동기화 실패: ' + (error.message || 'DB 설정을 확인해 주세요.'));
       }
+    }
+
+    async function handlePresentationChange(payload) {
+      if (payload.table === appStore.config.pagesTable) {
+        const changedTeamId = (payload.new && payload.new.team_id) || (payload.old && payload.old.team_id);
+
+        if (changedTeamId) {
+          appStore.invalidateTeamPages(changedTeamId);
+        } else {
+          appStore.invalidateAllPages();
+        }
+
+        const cachedState = appStore.getCachedState();
+        const shouldForceRefresh = cachedState.mode === 'finale'
+          || String(cachedState.current_team_id || '') === String(changedTeamId || '');
+
+        if (shouldForceRefresh) {
+          await refreshStatus(cachedState, { forcePages: true });
+        }
+
+        return;
+      }
+
+      if (payload.table === appStore.config.stateTable && payload.new) {
+        await refreshStatus(payload.new);
+        return;
+      }
+
+      await refreshStatus();
     }
 
     window.addEventListener('beforeunload', function () {
@@ -457,9 +524,9 @@
     window.PresentationPinGate
       .mount({ pageTitle: '운영진 리모컨 화면' })
       .then(function () {
-        renderTeamButtons();
+        renderControlStatus();
         refreshStatus();
-        controlChannel = appStore.subscribeToPresentationChanges('presentation-control', refreshStatus);
+        controlChannel = appStore.subscribeToPresentationChanges('presentation-control', handlePresentationChange);
       });
   </script>
 </body>
