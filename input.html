@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>결과 입력</title>
+  <script>
+    document.documentElement.classList.add('pin-locked');
+  </script>
+  <style>
+    .pin-locked body > * {
+      visibility: hidden;
+    }
+
+    .pin-locked #pinGateOverlay {
+      visibility: visible;
+    }
+
+    #pinGateOverlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(7, 17, 32, 0.94);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 5000;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+
+    #pinGatePanel {
+      width: 100%;
+      max-width: 380px;
+      background: #ffffff;
+      color: #1f2937;
+      border-radius: 16px;
+      padding: 28px;
+      box-sizing: border-box;
+      text-align: center;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
+    }
+
+    #pinGatePanel h1 {
+      margin: 0 0 10px;
+      font-size: 26px;
+    }
+
+    .pin-desc {
+      margin: 0 0 18px;
+      color: #4b5563;
+      line-height: 1.5;
+    }
+
+    #pinGateForm {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    #pinGateInput {
+      width: 100%;
+      padding: 14px;
+      border: 1px solid #d1d5db;
+      border-radius: 10px;
+      font-size: 18px;
+      text-align: center;
+      box-sizing: border-box;
+    }
+
+    #pinGateForm button {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 10px;
+      background: #0f62fe;
+      color: #fff;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .pin-error {
+      min-height: 20px;
+      margin: 12px 0 0;
+      color: #dc2626;
+      font-size: 14px;
+    }
+
+    body {
+      font-family: 'Malgun Gothic', sans-serif;
+      background: #f4f6f9;
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+      margin: 0;
+      box-sizing: border-box;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 600px;
+      background: #fff;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      box-sizing: border-box;
+    }
+
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+
+    .page-block {
+      background: #f9fdfc;
+      border: 1px solid #cce5ff;
+      padding: 15px;
+      margin-top: 15px;
+      border-radius: 8px;
+      position: relative;
+    }
+
+    .page-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      font-weight: bold;
+      color: #0056b3;
+    }
+
+    .delete-btn {
+      background: #dc3545;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 5px 10px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+
+    label {
+      font-weight: bold;
+      margin-top: 10px;
+      display: block;
+      color: #555;
+      font-size: 14px;
+    }
+
+    select,
+    input,
+    textarea {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      box-sizing: border-box;
+      font-size: 14px;
+    }
+
+    textarea {
+      height: 100px;
+      resize: vertical;
+    }
+
+    .action-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 25px;
+    }
+
+    .add-btn {
+      flex: 1;
+      padding: 15px;
+      background: #28a745;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .submit-btn {
+      flex: 2;
+      padding: 15px;
+      background: #0056b3;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      justify-content: center;
+      align-items: center;
+      z-index: 999;
+    }
+
+    .modal-content {
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      text-align: center;
+      min-width: 300px;
+      max-width: calc(100vw - 40px);
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+      box-sizing: border-box;
+    }
+
+    .modal-btn {
+      margin-top: 20px;
+      padding: 10px 20px;
+      background: #333;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>결과 입력 (퍼실리테이터)</h1>
+
+    <label for="teamSelect">조 선택</label>
+    <select id="teamSelect">
+      <option value="1">1조</option>
+      <option value="2">2조</option>
+      <option value="3">3조</option>
+      <option value="4">4조</option>
+      <option value="5">5조</option>
+      <option value="6">6조</option>
+      <option value="7">7조</option>
+      <option value="8">8조</option>
+      <option value="9">9조</option>
+      <option value="10">10조</option>
+    </select>
+
+    <div id="pagesContainer"></div>
+
+    <div class="action-row">
+      <button class="add-btn" onclick="addPage()">+ 페이지 추가</button>
+      <button id="submitBtn" class="submit-btn" onclick="submitData()">서버에 저장하기</button>
+    </div>
+  </div>
+
+  <div id="customModal" class="modal-overlay">
+    <div class="modal-content">
+      <p id="modalText"></p>
+      <button class="modal-btn" onclick="closeModal()">확인</button>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./supabase-config.js"></script>
+  <script src="./presentation-admin-config.js"></script>
+  <script src="./pin-gate.js"></script>
+  <script src="./supabase-client.js"></script>
+  <script>
+    const appStore = window.PresentationStore;
+
+    function showModal(msg) {
+      document.getElementById('modalText').innerText = msg;
+      document.getElementById('customModal').style.display = 'flex';
+    }
+
+    function closeModal() {
+      document.getElementById('customModal').style.display = 'none';
+    }
+
+    function createPageBlock(pageData) {
+      const block = document.createElement('div');
+      block.className = 'page-block';
+
+      const headerRow = document.createElement('div');
+      headerRow.className = 'page-header';
+
+      const titleLabel = document.createElement('span');
+      titleLabel.className = 'page-title-label';
+
+      const delBtn = document.createElement('button');
+      delBtn.className = 'delete-btn';
+      delBtn.innerText = '삭제';
+      delBtn.onclick = function () {
+        removePage(block);
+      };
+
+      headerRow.appendChild(titleLabel);
+      headerRow.appendChild(delBtn);
+
+      const inputLabel1 = document.createElement('label');
+      inputLabel1.innerText = '핵심 주제 (결론)';
+
+      const titleInput = document.createElement('input');
+      titleInput.type = 'text';
+      titleInput.className = 'input-title';
+      titleInput.placeholder = '1~2줄 이내로 요약해 주세요.';
+      titleInput.value = pageData && pageData.title ? pageData.title : '';
+
+      const inputLabel2 = document.createElement('label');
+      inputLabel2.innerText = '세부 논의 내용';
+
+      const contentTextarea = document.createElement('textarea');
+      contentTextarea.className = 'input-content';
+      contentTextarea.placeholder = '내용을 자유롭게 입력해 주세요.';
+      contentTextarea.value = pageData && pageData.content ? pageData.content : '';
+
+      block.appendChild(headerRow);
+      block.appendChild(inputLabel1);
+      block.appendChild(titleInput);
+      block.appendChild(inputLabel2);
+      block.appendChild(contentTextarea);
+
+      return block;
+    }
+
+    function updatePageNumbers() {
+      const container = document.getElementById('pagesContainer');
+      const blocks = container.getElementsByClassName('page-block');
+      const total = blocks.length;
+
+      for (let i = 0; i < total; i++) {
+        const label = blocks[i].getElementsByClassName('page-title-label')[0];
+        label.innerText = (i + 1) + '번째 장';
+
+        const delBtn = blocks[i].getElementsByClassName('delete-btn')[0];
+        delBtn.style.display = total === 1 ? 'none' : 'block';
+      }
+    }
+
+    function addPage(pageData) {
+      const container = document.getElementById('pagesContainer');
+      const newBlock = createPageBlock(pageData);
+      container.appendChild(newBlock);
+      updatePageNumbers();
+    }
+
+    function removePage(blockElement) {
+      const container = document.getElementById('pagesContainer');
+      const blocks = container.getElementsByClassName('page-block');
+
+      if (blocks.length <= 1) {
+        showModal('최소 1개의 페이지는 필수입니다.');
+        return;
+      }
+
+      container.removeChild(blockElement);
+      updatePageNumbers();
+    }
+
+    async function loadTeamPages() {
+      const teamId = parseInt(document.getElementById('teamSelect').value, 10);
+      const container = document.getElementById('pagesContainer');
+      container.innerHTML = '';
+
+      try {
+        const pages = await appStore.fetchPages(teamId);
+
+        if (!pages.length) {
+          addPage();
+          return;
+        }
+
+        pages.forEach(function (page) {
+          addPage(page);
+        });
+      } catch (error) {
+        addPage();
+        showModal('기존 데이터를 불러오지 못했습니다. 새로 입력은 가능합니다.');
+      }
+    }
+
+    async function submitData() {
+      const teamId = parseInt(document.getElementById('teamSelect').value, 10);
+      const blocks = document
+        .getElementById('pagesContainer')
+        .getElementsByClassName('page-block');
+
+      const pagesData = [];
+
+      for (let i = 0; i < blocks.length; i++) {
+        const titleVal = blocks[i].getElementsByClassName('input-title')[0].value.trim();
+        const contentVal = blocks[i].getElementsByClassName('input-content')[0].value.trim();
+
+        if (!titleVal || !contentVal) {
+          showModal((i + 1) + '번째 장의 주제와 내용을 모두 입력하세요.');
+          return;
+        }
+
+        pagesData.push({ title: titleVal, content: contentVal });
+      }
+
+      const submitBtn = document.getElementById('submitBtn');
+      submitBtn.disabled = true;
+      submitBtn.innerText = '서버에 저장 중...';
+
+      try {
+        await appStore.savePages(teamId, pagesData);
+        showModal(teamId + '조의 ' + pagesData.length + '개 페이지 데이터가 성공적으로 저장되었습니다.');
+      } catch (error) {
+        showModal('저장 실패: ' + (error.message || '네트워크 오류나 권한 문제를 확인해 주세요.'));
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerText = '서버에 저장하기';
+      }
+    }
+
+    window.onload = function () {
+      window.PresentationPinGate
+        .mount({ pageTitle: '퍼실리테이터 입력 화면' })
+        .then(function () {
+          document.getElementById('teamSelect').addEventListener('change', loadTeamPages);
+          loadTeamPages();
+        });
+    };
+  </script>
+</body>
+</html>

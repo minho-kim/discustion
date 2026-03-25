@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>토론회 시스템 관리 허브</title>
+  <style>
+    body {
+      font-family: 'Malgun Gothic', sans-serif;
+      background: #e9ecef;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+
+    .container {
+      background: #fff;
+      padding: 40px;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+      width: 100%;
+      max-width: 500px;
+      text-align: center;
+      box-sizing: border-box;
+    }
+
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+    }
+
+    .desc {
+      color: #666;
+      margin-bottom: 30px;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .link-btn {
+      display: block;
+      width: 100%;
+      padding: 18px;
+      margin-bottom: 15px;
+      border-radius: 8px;
+      color: white;
+      font-size: 18px;
+      font-weight: bold;
+      cursor: pointer;
+      border: none;
+      box-sizing: border-box;
+      transition: 0.2s;
+    }
+
+    .btn-input {
+      background: #28a745;
+    }
+
+    .btn-display {
+      background: #17a2b8;
+    }
+
+    .btn-control {
+      background: #dc3545;
+    }
+
+    .link-btn:hover {
+      opacity: 0.88;
+      transform: translateY(-2px);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>시스템 접속 허브</h1>
+    <p class="desc">
+      Supabase 기반 발표 시스템입니다.<br>
+      각 화면은 같은 폴더 안의 정적 HTML 파일로 열립니다.
+    </p>
+
+    <button class="link-btn btn-input" onclick="navigate('input.html')">1. 퍼실리테이터 입력 화면</button>
+    <button class="link-btn btn-display" onclick="navigate('display.html')">2. 빔프로젝터 메인 화면</button>
+    <button class="link-btn btn-control" onclick="navigate('control.html')">3. 운영진 리모컨 화면</button>
+  </div>
+
+  <script>
+    function navigate(page) {
+      window.location.href = new URL(page, window.location.href).href;
+    }
+  </script>
+</body>
+</html>

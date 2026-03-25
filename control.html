@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>운영진 리모컨</title>
+  <script>
+    document.documentElement.classList.add('pin-locked');
+  </script>
+  <style>
+    .pin-locked body > * {
+      visibility: hidden;
+    }
+
+    .pin-locked #pinGateOverlay {
+      visibility: visible;
+    }
+
+    #pinGateOverlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(7, 17, 32, 0.94);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 5000;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+
+    #pinGatePanel {
+      width: 100%;
+      max-width: 380px;
+      background: #ffffff;
+      color: #1f2937;
+      border-radius: 16px;
+      padding: 28px;
+      box-sizing: border-box;
+      text-align: center;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
+    }
+
+    #pinGatePanel h1 {
+      margin: 0 0 10px;
+      font-size: 26px;
+    }
+
+    .pin-desc {
+      margin: 0 0 18px;
+      color: #4b5563;
+      line-height: 1.5;
+    }
+
+    #pinGateForm {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    #pinGateInput {
+      width: 100%;
+      padding: 14px;
+      border: 1px solid #d1d5db;
+      border-radius: 10px;
+      font-size: 18px;
+      text-align: center;
+      box-sizing: border-box;
+    }
+
+    #pinGateForm button {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 10px;
+      background: #0f62fe;
+      color: #fff;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .pin-error {
+      min-height: 20px;
+      margin: 12px 0 0;
+      color: #dc2626;
+      font-size: 14px;
+    }
+
+    body {
+      font-family: 'Malgun Gothic', sans-serif;
+      background: #222;
+      color: #fff;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 0;
+      box-sizing: border-box;
+    }
+
+    .panel {
+      width: 100%;
+      max-width: 600px;
+      background: #333;
+      padding: 25px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-sizing: border-box;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+    }
+
+    h2 {
+      margin-top: 0;
+      color: #00d1ff;
+      font-size: 18px;
+      border-bottom: 1px solid #444;
+      padding-bottom: 10px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .btn {
+      padding: 15px 5px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+      background: #555;
+      color: #fff;
+      transition: 0.2s;
+    }
+
+    .btn.active {
+      background: #0056b3;
+      border: 2px solid #fff;
+    }
+
+    .page-ctrl {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 10px;
+    }
+
+    .page-btn {
+      flex: 1;
+      padding: 15px;
+      background: #444;
+      color: white;
+      border: 1px solid #666;
+      cursor: pointer;
+      font-size: 16px;
+      border-radius: 6px;
+    }
+
+    .page-info {
+      flex: 1;
+      text-align: center;
+      font-size: 20px;
+      font-weight: bold;
+    }
+
+    .timer-ctrl {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+
+    .timer-input {
+      width: 80px;
+      padding: 10px;
+      font-size: 18px;
+      text-align: center;
+      border-radius: 4px;
+      border: none;
+    }
+
+    .t-btn {
+      flex: 1;
+      padding: 12px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+      color: white;
+    }
+
+    .btn-start {
+      background: #28a745;
+    }
+
+    .btn-pause {
+      background: #f39c12;
+    }
+
+    .btn-reset {
+      background: #7f8c8d;
+    }
+
+    .btn-finale {
+      width: 100%;
+      padding: 20px;
+      background: linear-gradient(45deg, #ff00cc, #333399);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 22px;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 0 15px rgba(255, 0, 204, 0.5);
+      transition: 0.3s;
+      margin-top: 10px;
+    }
+
+    .btn-finale:hover {
+      transform: scale(1.02);
+      box-shadow: 0 0 25px rgba(255, 0, 204, 0.8);
+    }
+
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      justify-content: center;
+      align-items: center;
+      z-index: 999;
+    }
+
+    .modal-content {
+      background: #fff;
+      color: #333;
+      padding: 30px;
+      border-radius: 8px;
+      text-align: center;
+      font-size: 18px;
+      font-weight: bold;
+      max-width: calc(100vw - 40px);
+      box-sizing: border-box;
+    }
+
+    .modal-content button {
+      margin-top: 20px;
+      padding: 10px 30px;
+      background: #0056b3;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div class="panel">
+    <h2>1. 발표 조 선택</h2>
+    <div class="grid" id="teamGrid"></div>
+    <div class="page-ctrl">
+      <button class="page-btn" onclick="movePage(-1)">◀ 이전 장</button>
+      <div class="page-info"><span id="curP">1</span> / <span id="totalP">1</span></div>
+      <button class="page-btn" onclick="movePage(1)">다음 장 ▶</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>2. 타이머 제어</h2>
+    <div class="timer-ctrl">
+      <input type="number" id="minInput" class="timer-input" value="5"> 분
+      <button class="t-btn btn-reset" onclick="timerAction('reset')">초기화</button>
+    </div>
+    <div style="display:flex; gap:10px;">
+      <button class="t-btn btn-start" onclick="timerAction('playing')">타이머 시작</button>
+      <button class="t-btn btn-pause" onclick="timerAction('paused')">일시 정지</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>3. 행사 종료 연출 (결과 모아보기)</h2>
+    <button class="btn-finale" onclick="triggerFinale()">✨ 피날레 재생하기 ✨</button>
+  </div>
+
+  <div id="customModal" class="modal-overlay">
+    <div class="modal-content">
+      <p id="modalText"></p>
+      <button onclick="closeModal()">확인</button>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./supabase-config.js"></script>
+  <script src="./presentation-admin-config.js"></script>
+  <script src="./pin-gate.js"></script>
+  <script src="./supabase-client.js"></script>
+  <script>
+    const appStore = window.PresentationStore;
+
+    let currentTeamId = null;
+    let currentPageNo = 1;
+    let totalPageCount = 1;
+    let timerSnapshot = {
+      state: 'reset',
+      remain: 300,
+      lastAction: new Date().toISOString()
+    };
+    let controlChannel = null;
+
+    function showModal(msg) {
+      document.getElementById('modalText').innerText = msg;
+      document.getElementById('customModal').style.display = 'flex';
+    }
+
+    function closeModal() {
+      document.getElementById('customModal').style.display = 'none';
+    }
+
+    function renderTeamButtons() {
+      const grid = document.getElementById('teamGrid');
+      grid.innerHTML = '';
+
+      for (let i = 1; i <= 10; i++) {
+        const btn = document.createElement('button');
+        btn.className = currentTeamId === i ? 'btn active' : 'btn';
+        btn.innerText = i + '조';
+        btn.onclick = function () {
+          selectTeam(i);
+        };
+        grid.appendChild(btn);
+      }
+    }
+
+    function clampPageNumber(pageNumber) {
+      if (pageNumber < 1) {
+        return 1;
+      }
+
+      if (pageNumber > totalPageCount) {
+        return totalPageCount;
+      }
+
+      return pageNumber;
+    }
+
+    function getSelectedMinutes() {
+      const mins = parseInt(document.getElementById('minInput').value, 10);
+      return Number.isFinite(mins) && mins >= 0 ? mins : 5;
+    }
+
+    async function selectTeam(id) {
+      currentTeamId = id;
+      currentPageNo = 1;
+
+      try {
+        await appStore.setState({
+          mode: 'show',
+          current_team_id: id,
+          current_page_no: 1
+        });
+      } catch (error) {
+        showModal('조 선택 실패: ' + (error.message || '권한 또는 연결 상태를 확인해 주세요.'));
+      }
+    }
+
+    async function triggerFinale() {
+      try {
+        await appStore.setState({
+          mode: 'finale',
+          current_team_id: null,
+          current_page_no: 1
+        });
+        showModal('빔프로젝터에 피날레 연출이 시작되었습니다!');
+      } catch (error) {
+        showModal('피날레 시작 실패: ' + (error.message || '연결 상태를 확인해 주세요.'));
+      }
+    }
+
+    async function movePage(delta) {
+      if (!currentTeamId) {
+        return;
+      }
+
+      const target = clampPageNumber(currentPageNo + delta);
+
+      try {
+        await appStore.setState({
+          mode: 'show',
+          current_team_id: currentTeamId,
+          current_page_no: target
+        });
+      } catch (error) {
+        showModal('페이지 이동 실패: ' + (error.message || '연결 상태를 확인해 주세요.'));
+      }
+    }
+
+    async function timerAction(state) {
+      let nextRemainSecs = appStore.computeRemainingSeconds(timerSnapshot);
+
+      if (state === 'reset') {
+        nextRemainSecs = getSelectedMinutes() * 60;
+      }
+
+      try {
+        await appStore.setState({
+          timer_state: state,
+          timer_remain_secs: nextRemainSecs,
+          timer_last_action_at: new Date().toISOString()
+        });
+        showModal('타이머 ' + state + ' 명령이 전송되었습니다.');
+      } catch (error) {
+        showModal('타이머 제어 실패: ' + (error.message || '연결 상태를 확인해 주세요.'));
+      }
+    }
+
+    async function refreshStatus() {
+      try {
+        const state = await appStore.fetchState();
+        timerSnapshot = appStore.buildTimerData(state);
+
+        if (state.mode === 'show' && state.current_team_id) {
+          currentTeamId = state.current_team_id;
+          const pages = await appStore.fetchPages(currentTeamId);
+          totalPageCount = Math.max(1, pages.length);
+          currentPageNo = clampPageNumber(state.current_page_no || 1);
+        } else {
+          currentTeamId = null;
+          currentPageNo = 1;
+          totalPageCount = 1;
+        }
+
+        if (state.timer_state === 'reset') {
+          document.getElementById('minInput').value = Math.max(
+            0,
+            Math.floor((state.timer_remain_secs || 0) / 60)
+          );
+        }
+
+        document.getElementById('curP').innerText = currentPageNo;
+        document.getElementById('totalP').innerText = totalPageCount;
+        renderTeamButtons();
+      } catch (error) {
+        showModal('상태 동기화 실패: ' + (error.message || 'DB 설정을 확인해 주세요.'));
+      }
+    }
+
+    window.addEventListener('beforeunload', function () {
+      appStore.unsubscribe(controlChannel);
+    });
+
+    window.PresentationPinGate
+      .mount({ pageTitle: '운영진 리모컨 화면' })
+      .then(function () {
+        renderTeamButtons();
+        refreshStatus();
+        controlChannel = appStore.subscribeToPresentationChanges('presentation-control', refreshStatus);
+      });
+  </script>
+</body>
+</html>

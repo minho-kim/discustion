@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>토론회 메인 화면</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@100;300;400;700;900&display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      background-color: #000;
+      color: #fff;
+      font-family: 'Noto Sans KR', sans-serif;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .header {
+      padding: 3vh 3vw;
+      background: #111;
+      border-bottom: 4px solid #0056b3;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .team-info {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .team-badge {
+      background: #0056b3;
+      color: #fff;
+      padding: 0.5vh 1.5vw;
+      border-radius: 20px;
+      font-size: 1.5vw;
+      font-weight: 700;
+      width: fit-content;
+      margin-bottom: 1vh;
+    }
+
+    .page-indicator {
+      color: #aaa;
+      font-size: 1.2vw;
+      margin-left: 0.5vw;
+      font-weight: 300;
+    }
+
+    .title-text {
+      font-size: 2.5vw;
+      font-weight: 900;
+      margin: 0;
+      word-break: keep-all;
+    }
+
+    .timer-display {
+      font-size: 4.5vw;
+      font-family: 'Courier New', monospace;
+      font-weight: bold;
+      color: #ff4757;
+      text-shadow: 0 0 20px rgba(255, 71, 87, 0.5);
+    }
+
+    .timer-warning {
+      color: #ffa502;
+      animation: blink 1s infinite;
+    }
+
+    @keyframes blink {
+      50% {
+        opacity: 0.5;
+      }
+    }
+
+    .content-area {
+      flex: 1;
+      padding: 4vh 5vw;
+      overflow-y: auto;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+    }
+
+    .content-text {
+      font-size: 2.2vw;
+      line-height: 1.6;
+      color: #e0e0e0;
+      white-space: pre-wrap;
+      width: 100%;
+      max-width: 80vw;
+      font-weight: 300;
+    }
+
+    .empty-msg {
+      font-size: 2.5vw;
+      color: #444;
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      width: 100%;
+      padding: 0 5vw;
+      box-sizing: border-box;
+    }
+
+    #finaleView {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 100;
+      display: none;
+      background: radial-gradient(circle at center, #050515 0%, #000 100%);
+      overflow: hidden;
+      perspective: 1000px;
+    }
+
+    #starsContainer {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 10;
+    }
+
+    .word-node {
+      position: absolute;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      transform: translate(-50%, -50%);
+      font-weight: 700;
+      line-height: 1.4;
+      word-break: break-word;
+      overflow: hidden;
+      white-space: nowrap;
+      pointer-events: none;
+      opacity: 0;
+      filter: blur(20px);
+      animation: focusIn 1.5s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+    }
+
+    .neon-team-label {
+      font-weight: 100;
+      opacity: 0.7;
+      margin-bottom: 0.3vh;
+    }
+
+    @keyframes focusIn {
+      0% {
+        opacity: 0;
+        filter: blur(30px) brightness(3);
+        transform: translate(-50%, -50%) scale(2);
+      }
+
+      100% {
+        opacity: 1;
+        filter: blur(0) brightness(1);
+        transform: translate(-50%, -50%) scale(1);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="displayView" style="display:none; height:100%; flex-direction:column;">
+    <div class="header">
+      <div class="team-info">
+        <div class="team-badge"><span id="teamIdLabel">0</span>조 발표 <span id="pageLabel" class="page-indicator">(1/1)</span></div>
+        <h1 id="titleLabel" class="title-text">주제</h1>
+      </div>
+      <div id="timerLabel" class="timer-display">00:00</div>
+    </div>
+    <div class="content-area">
+      <div id="contentLabel" class="content-text">내용</div>
+    </div>
+  </div>
+
+  <div id="waitingView" class="empty-msg">발표를 대기 중입니다.</div>
+
+  <div id="finaleView">
+    <div id="starsContainer"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./supabase-config.js"></script>
+  <script src="./supabase-client.js"></script>
+  <script>
+    const appStore = window.PresentationStore;
+
+    let localTimerValue = 0;
+    let timerInterval = null;
+    let isFinalePlaying = false;
+    let finaleNodes = [];
+    let finaleAnimationFrame = null;
+    let displayChannel = null;
+
+    function formatTime(seconds) {
+      const safeSeconds = Math.max(0, seconds);
+      const m = Math.floor(safeSeconds / 60);
+      const s = safeSeconds % 60;
+      return (m < 10 ? '0' + m : m) + ':' + (s < 10 ? '0' + s : s);
+    }
+
+    function syncTimer(timerData) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+
+      localTimerValue = appStore.computeRemainingSeconds(timerData);
+
+      if (timerData.state === 'playing' && localTimerValue > 0) {
+        timerInterval = setInterval(function () {
+          localTimerValue = Math.max(0, localTimerValue - 1);
+          updateTimerUI();
+
+          if (localTimerValue <= 0) {
+            clearInterval(timerInterval);
+            timerInterval = null;
+          }
+        }, 1000);
+      }
+
+      updateTimerUI();
+    }
+
+    function updateTimerUI() {
+      const el = document.getElementById('timerLabel');
+      el.innerText = formatTime(localTimerValue);
+
+      if (localTimerValue < 60 && localTimerValue > 0) {
+        el.classList.add('timer-warning');
+      } else {
+        el.classList.remove('timer-warning');
+      }
+    }
+
+    function initFinaleGalaxy(titles) {
+      const container = document.getElementById('starsContainer');
+      container.innerHTML = '';
+      finaleNodes = [];
+
+      const total = titles.length;
+      const radius = Math.min(window.innerWidth, window.innerHeight) * 0.35;
+
+      for (let i = 0; i < total; i++) {
+        const el = document.createElement('div');
+        el.className = 'word-node';
+        el.innerHTML = '<span class="neon-team-label">' + titles[i].team + '조</span><span>' + titles[i].title + '</span>';
+        container.appendChild(el);
+
+        const phi = Math.acos(-1 + (2 * i) / total);
+        const theta = Math.sqrt(total * Math.PI) * phi;
+
+        finaleNodes.push({
+          el: el,
+          x: radius * Math.cos(theta) * Math.sin(phi),
+          y: radius * Math.sin(theta) * Math.sin(phi),
+          z: radius * Math.cos(phi)
+        });
+
+        el.style.animationDelay = (i * 0.15) + 's';
+      }
+
+      animateFinaleGalaxy();
+    }
+
+    function animateFinaleGalaxy() {
+      const angleY = 0.001;
+      const angleX = 0.0005;
+      const cy = Math.cos(angleY);
+      const sy = Math.sin(angleY);
+      const cx = Math.cos(angleX);
+      const sx = Math.sin(angleX);
+      const vw = window.innerWidth / 2;
+      const vh = window.innerHeight / 2;
+      const radius = Math.min(window.innerWidth, window.innerHeight) * 0.35;
+
+      for (let i = 0; i < finaleNodes.length; i++) {
+        const node = finaleNodes[i];
+
+        const x1 = node.x * cy + node.z * sy;
+        const z1 = -node.x * sy + node.z * cy;
+        const y1 = node.y * cx - z1 * sx;
+        const z2 = node.y * sx + z1 * cx;
+
+        node.x = x1;
+        node.y = y1;
+        node.z = z2;
+
+        const depth = (node.z + radius) / (2 * radius);
+        const perspectiveFactor = 500 / (500 - node.z);
+        const posX = node.x * perspectiveFactor + vw;
+        const posY = node.y * perspectiveFactor + vh;
+
+        node.el.style.left = posX + 'px';
+        node.el.style.top = posY + 'px';
+        node.el.style.transform = 'translate(-50%, -50%) scale(' + (0.7 + depth * 0.6) + ')';
+        node.el.style.zIndex = Math.round(node.z);
+        node.el.style.opacity = 0.1 + depth * 0.9;
+
+        if (node.z > 50) {
+          node.el.style.fontWeight = '900';
+          node.el.style.color = '#fff';
+          node.el.style.textShadow = '0 0 10px #fff';
+        } else {
+          node.el.style.fontWeight = '100';
+          node.el.style.color = '#666';
+          node.el.style.textShadow = 'none';
+        }
+      }
+
+      finaleAnimationFrame = requestAnimationFrame(animateFinaleGalaxy);
+    }
+
+    function stopFinale() {
+      if (finaleAnimationFrame) {
+        cancelAnimationFrame(finaleAnimationFrame);
+        finaleAnimationFrame = null;
+      }
+
+      finaleNodes = [];
+      isFinalePlaying = false;
+      document.getElementById('starsContainer').innerHTML = '';
+    }
+
+    function renderScreen(res) {
+      const displayView = document.getElementById('displayView');
+      const waitingView = document.getElementById('waitingView');
+      const finaleView = document.getElementById('finaleView');
+
+      syncTimer(res.timer);
+
+      if (res.status === 'finale') {
+        if (!res.titles.length) {
+          stopFinale();
+          finaleView.style.display = 'none';
+          displayView.style.display = 'none';
+          waitingView.style.display = 'flex';
+          waitingView.innerText = '피날레용 제목 데이터가 없습니다.';
+          return;
+        }
+
+        if (!isFinalePlaying) {
+          isFinalePlaying = true;
+          displayView.style.display = 'none';
+          waitingView.style.display = 'none';
+          finaleView.style.display = 'block';
+          initFinaleGalaxy(res.titles);
+        }
+
+        return;
+      }
+
+      if (isFinalePlaying) {
+        stopFinale();
+      }
+
+      finaleView.style.display = 'none';
+
+      if (res.status === 'show') {
+        document.getElementById('teamIdLabel').innerText = res.teamId;
+        document.getElementById('pageLabel').innerText = '(' + res.currentPage + '/' + res.totalPages + ')';
+        document.getElementById('titleLabel').innerText = res.title;
+        document.getElementById('contentLabel').innerText = res.content;
+        waitingView.style.display = 'none';
+        displayView.style.display = 'flex';
+      } else {
+        waitingView.innerText = res.status === 'nodata'
+          ? res.teamId + '조의 데이터가 없습니다.'
+          : '발표를 대기 중입니다.';
+        waitingView.style.display = 'flex';
+        displayView.style.display = 'none';
+      }
+    }
+
+    async function loadAndRender() {
+      try {
+        const res = await appStore.fetchDisplayPayload();
+        renderScreen(res);
+      } catch (error) {
+        stopFinale();
+        document.getElementById('displayView').style.display = 'none';
+        document.getElementById('finaleView').style.display = 'none';
+        const waitingView = document.getElementById('waitingView');
+        waitingView.style.display = 'flex';
+        waitingView.innerText = '연결 오류가 발생했습니다. DB 설정과 Realtime 상태를 확인해 주세요.';
+      }
+    }
+
+    window.addEventListener('beforeunload', function () {
+      if (timerInterval) {
+        clearInterval(timerInterval);
+      }
+
+      stopFinale();
+      appStore.unsubscribe(displayChannel);
+    });
+
+    loadAndRender();
+    displayChannel = appStore.subscribeToPresentationChanges('presentation-display', loadAndRender);
+  </script>
+</body>
+</html>
