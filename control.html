@@ -140,6 +140,123 @@
       border: 2px solid #fff;
     }
 
+    .btn.has-data {
+      background: #14532d;
+    }
+
+    .btn.no-data {
+      background: #4b5563;
+    }
+
+    .btn.on-air {
+      box-shadow: 0 0 0 2px rgba(255, 193, 7, 0.6);
+    }
+
+    .team-btn {
+      min-height: 86px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 12px 8px;
+      box-sizing: border-box;
+    }
+
+    .team-btn-main {
+      font-size: 18px;
+      line-height: 1;
+    }
+
+    .team-btn-sub {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.85);
+      line-height: 1.35;
+    }
+
+    .team-btn-live {
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: rgba(255, 193, 7, 0.18);
+      color: #ffd86a;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .panel-tools {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+
+    .secondary-btn {
+      flex: 1;
+      min-width: 180px;
+      padding: 12px 14px;
+      border: 1px solid #556271;
+      border-radius: 8px;
+      background: #27313d;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .secondary-btn.primary-action {
+      background: #0f62fe;
+      border-color: #0f62fe;
+    }
+
+    .secondary-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .selection-summary {
+      margin: 4px 0 14px;
+      color: #b8c4d4;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .selected-preview-shell {
+      margin-top: 14px;
+      border: 1px solid #475464;
+      border-radius: 14px;
+      background: #18212c;
+      padding: 18px;
+      box-sizing: border-box;
+    }
+
+    .selected-preview-title {
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      word-break: keep-all;
+    }
+
+    .selected-preview-body {
+      min-height: 120px;
+      padding: 16px;
+      border-radius: 10px;
+      background: #101722;
+      color: #e4ebf3;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      box-sizing: border-box;
+    }
+
+    .selected-preview-empty {
+      color: #9ba9b9;
+    }
+
+    .page-caption {
+      margin: 0 0 10px;
+      color: #aeb9c7;
+      font-size: 13px;
+    }
+
     .btn-waiting {
       width: 100%;
       margin-top: 12px;
@@ -476,7 +593,8 @@
       }
 
       .page-ctrl,
-      .danger-row {
+      .danger-row,
+      .panel-tools {
         flex-direction: column;
       }
 
@@ -507,17 +625,32 @@
       <div id="previewContent" class="preview-content">조를 선택하면 여기서 현재 디스플레이에 나가는 주제와 내용을 함께 확인할 수 있습니다.</div>
       <div id="previewFinale" class="preview-finale"></div>
     </div>
+    <div class="page-ctrl">
+      <button id="livePrevPageBtn" class="page-btn" onclick="movePage(-1)">◀ 현재 송출 이전 장</button>
+      <div class="page-info"><span id="curP">-</span> / <span id="totalP">-</span></div>
+      <button id="liveNextPageBtn" class="page-btn" onclick="movePage(1)">현재 송출 다음 장 ▶</button>
+    </div>
+    <button class="btn-waiting" onclick="setWaitingMode()">대기화면으로 전환</button>
   </div>
 
   <div class="panel">
     <h2>1. 발표 조 선택</h2>
-    <div class="grid" id="teamGrid"></div>
-    <div class="page-ctrl">
-      <button id="prevPageBtn" class="page-btn" onclick="movePage(-1)">◀ 이전 장</button>
-      <div class="page-info"><span id="curP">1</span> / <span id="totalP">1</span></div>
-      <button id="nextPageBtn" class="page-btn" onclick="movePage(1)">다음 장 ▶</button>
+    <div class="panel-tools">
+      <button class="secondary-btn" onclick="refreshTeamCatalog(true, false)">입력 현황 새로고침</button>
+      <button id="presentSelectedBtn" class="secondary-btn primary-action" onclick="presentSelectedTeam()" disabled>선택 조를 1페이지부터 송출</button>
     </div>
-    <button class="btn-waiting" onclick="setWaitingMode()">대기화면으로 전환</button>
+    <div class="grid" id="teamGrid"></div>
+    <p id="selectionSummary" class="selection-summary">조를 선택하면 입력된 발표 내용을 미리 확인할 수 있습니다.</p>
+    <div class="page-ctrl">
+      <button id="previewPrevBtn" class="page-btn" onclick="moveSelectedPreviewPage(-1)">◀ 미리보기 이전 장</button>
+      <div class="page-info"><span id="previewCurP">-</span> / <span id="previewTotalP">-</span></div>
+      <button id="previewNextBtn" class="page-btn" onclick="moveSelectedPreviewPage(1)">미리보기 다음 장 ▶</button>
+    </div>
+    <div class="selected-preview-shell">
+      <p class="page-caption">모니터에 보내기 전에 이 영역에서 입력 내용을 먼저 확인할 수 있습니다.</p>
+      <div id="selectedPreviewTitle" class="selected-preview-title">조를 선택해 주세요.</div>
+      <div id="selectedPreviewBody" class="selected-preview-body selected-preview-empty">아직 선택된 조가 없습니다.</div>
+    </div>
   </div>
 
   <div class="panel">
@@ -549,12 +682,12 @@
     <div class="danger-row">
       <button class="danger-btn btn-team-delete" onclick="deleteSelectedTeamData()">&lt;조별삭제&gt;</button>
       <button class="danger-btn btn-all-delete" onclick="deleteAllData()">&lt;전체삭제&gt;</button>
-      <button class="danger-btn btn-download" onclick="downloadAllData()">데이터 내려받기</button>
+      <button class="danger-btn btn-download" onclick="downloadAllData()">엑셀용 백업</button>
     </div>
     <p class="danger-note">
       `조별삭제`는 현재 선택된 조 데이터만 지웁니다.<br>
       `전체삭제`는 모든 조 데이터를 지우고 화면 상태를 대기로 초기화합니다.<br>
-      삭제/초기화는 두 번 확인하고, 내려받기는 현재 전체 데이터를 JSON 백업 파일로 저장합니다.
+      삭제/초기화는 두 번 확인하고, 내려받기는 엑셀에서 열 수 있는 CSV 백업 파일로 저장합니다.
     </p>
   </div>
 
@@ -574,9 +707,15 @@
     const appStore = window.PresentationStore;
 
     let adminAccessToken = '';
+    let currentDisplayStatus = 'waiting';
     let currentTeamId = null;
     let currentPageNo = 1;
     let totalPageCount = 1;
+    let selectedTeamId = null;
+    let selectedTeamPages = [];
+    let selectedPreviewPageNo = 1;
+    let selectedPreviewLoading = false;
+    let teamSummaries = {};
     let timerSnapshot = {
       state: 'reset',
       remain: 300,
@@ -602,8 +741,38 @@
 
       for (let i = 1; i <= 10; i++) {
         const btn = document.createElement('button');
-        btn.className = currentTeamId === i ? 'btn active' : 'btn';
-        btn.innerText = i + '조';
+        const summary = teamSummaries[i] || { loaded: false, pageCount: 0 };
+        const isOnAir = (currentDisplayStatus === 'show' || currentDisplayStatus === 'nodata') && currentTeamId === i;
+
+        btn.className = selectedTeamId === i ? 'btn team-btn active' : 'btn team-btn';
+
+        if (summary.loaded) {
+          btn.classList.add(summary.pageCount > 0 ? 'has-data' : 'no-data');
+        }
+
+        if (isOnAir) {
+          btn.classList.add('on-air');
+        }
+
+        const main = document.createElement('div');
+        main.className = 'team-btn-main';
+        main.innerText = i + '조';
+        btn.appendChild(main);
+
+        const sub = document.createElement('div');
+        sub.className = 'team-btn-sub';
+        sub.innerText = summary.loaded
+          ? (summary.pageCount > 0 ? summary.pageCount + '장 입력됨' : '미입력')
+          : '확인 중';
+        btn.appendChild(sub);
+
+        if (isOnAir) {
+          const live = document.createElement('div');
+          live.className = 'team-btn-live';
+          live.innerText = '송출중';
+          btn.appendChild(live);
+        }
+
         btn.onclick = function () {
           selectTeam(i);
         };
@@ -612,12 +781,20 @@
     }
 
     function renderControlStatus() {
-      const hasTeam = Boolean(currentTeamId);
-      document.getElementById('curP').innerText = hasTeam ? currentPageNo : '-';
-      document.getElementById('totalP').innerText = hasTeam ? totalPageCount : '-';
-      document.getElementById('prevPageBtn').disabled = !hasTeam;
-      document.getElementById('nextPageBtn').disabled = !hasTeam;
+      const hasLivePages = currentDisplayStatus === 'show' && Boolean(currentTeamId);
+      const hasSelectedPreview = Boolean(selectedTeamPages.length);
+
+      document.getElementById('curP').innerText = hasLivePages ? currentPageNo : '-';
+      document.getElementById('totalP').innerText = hasLivePages ? totalPageCount : '-';
+      document.getElementById('livePrevPageBtn').disabled = !hasLivePages;
+      document.getElementById('liveNextPageBtn').disabled = !hasLivePages;
+      document.getElementById('previewCurP').innerText = hasSelectedPreview ? selectedPreviewPageNo : '-';
+      document.getElementById('previewTotalP').innerText = hasSelectedPreview ? selectedTeamPages.length : '-';
+      document.getElementById('previewPrevBtn').disabled = !hasSelectedPreview;
+      document.getElementById('previewNextBtn').disabled = !hasSelectedPreview;
+      document.getElementById('presentSelectedBtn').disabled = !selectedTeamId || selectedPreviewLoading;
       renderTeamButtons();
+      renderSelectedPreview();
     }
 
     function clampPageNumber(pageNumber) {
@@ -627,6 +804,22 @@
 
       if (pageNumber > totalPageCount) {
         return totalPageCount;
+      }
+
+      return pageNumber;
+    }
+
+    function clampSelectedPreviewPage(pageNumber) {
+      if (!selectedTeamPages.length) {
+        return 1;
+      }
+
+      if (pageNumber < 1) {
+        return 1;
+      }
+
+      if (pageNumber > selectedTeamPages.length) {
+        return selectedTeamPages.length;
       }
 
       return pageNumber;
@@ -647,6 +840,13 @@
       }
 
       return askConfirmation(secondMessage);
+    }
+
+    function updateTeamSummary(teamId, pages) {
+      teamSummaries[teamId] = {
+        loaded: true,
+        pageCount: Array.isArray(pages) ? pages.length : 0
+      };
     }
 
     function formatTime(seconds) {
@@ -730,6 +930,50 @@
       container.style.display = 'grid';
     }
 
+    function renderSelectedPreview() {
+      const summaryNode = document.getElementById('selectionSummary');
+      const titleNode = document.getElementById('selectedPreviewTitle');
+      const bodyNode = document.getElementById('selectedPreviewBody');
+
+      if (!selectedTeamId) {
+        summaryNode.innerText = '조를 선택하면 입력된 발표 내용을 미리 확인할 수 있습니다.';
+        titleNode.innerText = '조를 선택해 주세요.';
+        bodyNode.className = 'selected-preview-body selected-preview-empty';
+        bodyNode.innerText = '아직 선택된 조가 없습니다.';
+        return;
+      }
+
+      const summary = teamSummaries[selectedTeamId] || { loaded: false, pageCount: 0 };
+      const onAirMessage = ((currentDisplayStatus === 'show' || currentDisplayStatus === 'nodata') && currentTeamId === selectedTeamId)
+        ? ' · 현재 모니터 송출 중'
+        : '';
+
+      summaryNode.innerText = selectedTeamId + '조 선택됨 · ' +
+        (summary.loaded
+          ? (summary.pageCount > 0 ? summary.pageCount + '장 입력됨' : '저장된 데이터 없음')
+          : '입력 상태 확인 중') +
+        onAirMessage;
+
+      if (selectedPreviewLoading) {
+        titleNode.innerText = selectedTeamId + '조 입력 내용을 불러오는 중입니다.';
+        bodyNode.className = 'selected-preview-body selected-preview-empty';
+        bodyNode.innerText = '저장된 페이지를 확인하는 중입니다.';
+        return;
+      }
+
+      if (!selectedTeamPages.length) {
+        titleNode.innerText = selectedTeamId + '조는 아직 저장된 데이터가 없습니다.';
+        bodyNode.className = 'selected-preview-body selected-preview-empty';
+        bodyNode.innerText = '이 상태에서는 모니터에 띄우기 전에 데이터가 비어 있음을 바로 확인할 수 있습니다.';
+        return;
+      }
+
+      const page = selectedTeamPages[selectedPreviewPageNo - 1] || selectedTeamPages[0];
+      titleNode.innerText = page.title;
+      bodyNode.className = 'selected-preview-body';
+      bodyNode.innerText = page.content;
+    }
+
     function renderPreview(payload) {
       const badge = document.getElementById('previewBadge');
       const meta = document.getElementById('previewMeta');
@@ -792,13 +1036,13 @@
         pad(now.getHours()) +
         pad(now.getMinutes()) +
         pad(now.getSeconds()) +
-        '.json';
+        '.csv';
     }
 
-    function downloadJsonFile(filename, data) {
+    function downloadTextFile(filename, text, mimeType) {
       const blob = new Blob(
-        [JSON.stringify(data, null, 2)],
-        { type: 'application/json;charset=utf-8' }
+        ['\ufeff' + text],
+        { type: mimeType }
       );
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -810,7 +1054,41 @@
       URL.revokeObjectURL(url);
     }
 
-    async function collectBackupData() {
+    function escapeCsvValue(value) {
+      const safe = value === null || value === undefined ? '' : String(value);
+      return '"' + safe.replace(/"/g, '""') + '"';
+    }
+
+    function buildBackupCsv(rows) {
+      const headers = [
+        'exported_at',
+        'display_status',
+        'display_team_id',
+        'display_current_page',
+        'display_total_pages',
+        'display_timer_state',
+        'display_timer_remain_secs',
+        'team_id',
+        'page_count',
+        'page_no',
+        'title',
+        'content'
+      ];
+
+      const lines = [headers.map(escapeCsvValue).join(',')];
+
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        lines.push(headers.map(function (key) {
+          return escapeCsvValue(row[key]);
+        }).join(','));
+      }
+
+      return lines.join('\r\n');
+    }
+
+    async function collectBackupRows() {
+      const exportedAt = new Date().toISOString();
       const teamIds = [];
 
       for (let i = 1; i <= 10; i++) {
@@ -819,6 +1097,7 @@
 
       const results = await Promise.all(teamIds.map(async function (teamId) {
         const pages = await appStore.adminFetchPages(teamId, adminAccessToken, { force: true });
+        updateTeamSummary(teamId, pages);
         return {
           teamId: teamId,
           pageCount: pages.length,
@@ -827,13 +1106,100 @@
       }));
 
       const publicDisplay = await appStore.fetchPublicDisplay();
+      const timerData = appStore.buildTimerData(publicDisplay);
+      const remainingSeconds = appStore.computeRemainingSeconds(timerData);
+      const rows = [];
 
-      return {
-        exportedAt: new Date().toISOString(),
-        exportedBy: 'control',
-        display: publicDisplay,
-        teams: results
-      };
+      for (let i = 0; i < results.length; i++) {
+        const entry = results[i];
+
+        if (entry.pages.length) {
+          for (let j = 0; j < entry.pages.length; j++) {
+            const page = entry.pages[j];
+            rows.push({
+              exported_at: exportedAt,
+              display_status: publicDisplay.status,
+              display_team_id: publicDisplay.team_id,
+              display_current_page: publicDisplay.current_page,
+              display_total_pages: publicDisplay.total_pages,
+              display_timer_state: publicDisplay.timer_state,
+              display_timer_remain_secs: remainingSeconds,
+              team_id: entry.teamId,
+              page_count: entry.pageCount,
+              page_no: page.page_no,
+              title: page.title,
+              content: page.content
+            });
+          }
+        } else {
+          rows.push({
+            exported_at: exportedAt,
+            display_status: publicDisplay.status,
+            display_team_id: publicDisplay.team_id,
+            display_current_page: publicDisplay.current_page,
+            display_total_pages: publicDisplay.total_pages,
+            display_timer_state: publicDisplay.timer_state,
+            display_timer_remain_secs: remainingSeconds,
+            team_id: entry.teamId,
+            page_count: entry.pageCount,
+            page_no: '',
+            title: '',
+            content: ''
+          });
+        }
+      }
+
+      if (selectedTeamId) {
+        const selectedEntry = results.find(function (entry) {
+          return entry.teamId === selectedTeamId;
+        });
+
+        selectedTeamPages = selectedEntry ? selectedEntry.pages : [];
+        selectedPreviewPageNo = clampSelectedPreviewPage(selectedPreviewPageNo);
+      }
+
+      renderControlStatus();
+
+      return rows;
+    }
+
+    async function refreshTeamCatalog(force, showFeedback) {
+      try {
+        const teamIds = [];
+
+        for (let i = 1; i <= 10; i++) {
+          teamIds.push(i);
+        }
+
+        const results = await Promise.all(teamIds.map(async function (teamId) {
+          const pages = await appStore.adminFetchPages(teamId, adminAccessToken, { force: Boolean(force) });
+          updateTeamSummary(teamId, pages);
+          return {
+            teamId: teamId,
+            pages: pages
+          };
+        }));
+
+        if (selectedTeamId) {
+          const selectedEntry = results.find(function (entry) {
+            return entry.teamId === selectedTeamId;
+          });
+
+          selectedTeamPages = selectedEntry ? selectedEntry.pages : [];
+          selectedPreviewPageNo = clampSelectedPreviewPage(selectedPreviewPageNo);
+          selectedPreviewLoading = false;
+        }
+
+        renderControlStatus();
+
+        if (showFeedback) {
+          showModal('입력 현황을 새로고침했습니다.');
+        }
+      } catch (error) {
+        selectedPreviewLoading = false;
+        renderControlStatus();
+        handleAdminError(error, '입력 현황 새로고침 실패');
+      }
     }
 
     function handleAdminError(error, fallbackMessage) {
@@ -850,6 +1216,7 @@
     function applyDisplayToUi(displayRow) {
       const display = appStore.hydratePublicDisplay(displayRow);
       const previewPayload = appStore.buildDisplayPayloadFromPublicDisplay(display);
+      currentDisplayStatus = display.status;
       timerSnapshot = previewPayload.timer;
 
       if (display.status === 'show' || display.status === 'nodata') {
@@ -886,15 +1253,38 @@
     }
 
     async function selectTeam(id) {
-      currentTeamId = id;
-      currentPageNo = 1;
-      totalPageCount = Math.max(1, totalPageCount);
+      selectedTeamId = id;
+      selectedPreviewPageNo = 1;
+      selectedTeamPages = [];
+      selectedPreviewLoading = true;
       renderControlStatus();
+
+      try {
+        selectedTeamPages = await appStore.adminFetchPages(id, adminAccessToken, { force: true });
+        updateTeamSummary(id, selectedTeamPages);
+        selectedPreviewLoading = false;
+        renderControlStatus();
+      } catch (error) {
+        selectedPreviewLoading = false;
+        renderControlStatus();
+        handleAdminError(error, '조 데이터 확인 실패');
+      }
+    }
+
+    async function presentSelectedTeam() {
+      if (!selectedTeamId) {
+        showModal('먼저 확인할 조를 선택해 주세요.');
+        return;
+      }
+
+      if (!selectedTeamPages.length && !askConfirmation(selectedTeamId + '조는 저장된 데이터가 없습니다. 그래도 모니터에 띄울까요?')) {
+        return;
+      }
 
       try {
         const result = await appStore.adminSetState({
           mode: 'show',
-          current_team_id: id,
+          current_team_id: selectedTeamId,
           current_page_no: 1
         }, adminAccessToken);
 
@@ -903,9 +1293,11 @@
         } else {
           await refreshStatus();
         }
+
+        showModal(selectedTeamId + '조를 1페이지부터 송출했습니다.');
       } catch (error) {
         await refreshStatus();
-        handleAdminError(error, '조 선택 실패');
+        handleAdminError(error, '조 송출 실패');
       }
     }
 
@@ -948,7 +1340,7 @@
     }
 
     async function movePage(delta) {
-      if (!currentTeamId) {
+      if (!currentTeamId || currentDisplayStatus !== 'show') {
         return;
       }
 
@@ -970,6 +1362,15 @@
         await refreshStatus();
         handleAdminError(error, '페이지 이동 실패');
       }
+    }
+
+    function moveSelectedPreviewPage(delta) {
+      if (!selectedTeamPages.length) {
+        return;
+      }
+
+      selectedPreviewPageNo = clampSelectedPreviewPage(selectedPreviewPageNo + delta);
+      renderControlStatus();
     }
 
     async function timerAction(state) {
@@ -997,22 +1398,26 @@
     }
 
     async function deleteSelectedTeamData() {
-      if (!currentTeamId) {
+      if (!selectedTeamId) {
         showModal('먼저 삭제할 조를 선택해 주세요.');
         return;
       }
 
       if (!askDangerConfirmation(
-        currentTeamId + '조 데이터를 삭제할까요?',
-        currentTeamId + '조 데이터를 정말 삭제합니다. 되돌릴 수 없습니다. 계속할까요?'
+        selectedTeamId + '조 데이터를 삭제할까요?',
+        selectedTeamId + '조 데이터를 정말 삭제합니다. 되돌릴 수 없습니다. 계속할까요?'
       )) {
         return;
       }
 
       try {
-        await appStore.adminDeleteTeamPages(currentTeamId, adminAccessToken);
+        await appStore.adminDeleteTeamPages(selectedTeamId, adminAccessToken);
+        selectedTeamPages = [];
+        selectedPreviewPageNo = 1;
+        updateTeamSummary(selectedTeamId, []);
+        await refreshTeamCatalog(true, false);
         await refreshStatus();
-        showModal(currentTeamId + '조 데이터가 삭제되었습니다.');
+        showModal(selectedTeamId + '조 데이터가 삭제되었습니다.');
       } catch (error) {
         handleAdminError(error, '조별삭제 실패');
       }
@@ -1028,6 +1433,9 @@
 
       try {
         const result = await appStore.adminDeleteAllPages(adminAccessToken);
+        selectedTeamPages = [];
+        selectedPreviewPageNo = 1;
+        teamSummaries = {};
 
         if (result && result.publicDisplay) {
           applyDisplayToUi(result.publicDisplay);
@@ -1035,6 +1443,7 @@
           await refreshStatus();
         }
 
+        await refreshTeamCatalog(true, false);
         showModal('전체 데이터가 삭제되고 화면 상태가 초기화되었습니다.');
       } catch (error) {
         handleAdminError(error, '전체삭제 실패');
@@ -1043,9 +1452,10 @@
 
     async function downloadAllData() {
       try {
-        const backup = await collectBackupData();
-        downloadJsonFile(buildBackupFilename(), backup);
-        showModal('현재 데이터 백업 파일을 내려받았습니다.');
+        const rows = await collectBackupRows();
+        const csv = buildBackupCsv(rows);
+        downloadTextFile(buildBackupFilename(), csv, 'text/csv;charset=utf-8;');
+        showModal('엑셀에서 열 수 있는 CSV 백업 파일을 내려받았습니다.');
       } catch (error) {
         handleAdminError(error, '데이터 내려받기 실패');
       }
@@ -1067,10 +1477,11 @@
 
     window.PresentationPinGate
       .mount({ pageKey: 'control', pageTitle: '운영진 리모컨 화면' })
-      .then(function (session) {
+      .then(async function (session) {
         adminAccessToken = session && session.accessToken ? session.accessToken : '';
         renderControlStatus();
-        refreshStatus();
+        await refreshStatus();
+        await refreshTeamCatalog(true, false);
         controlChannel = appStore.subscribeToPresentationChanges('presentation-control', handlePresentationChange);
       });
   </script>
