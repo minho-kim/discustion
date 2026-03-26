@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>오프닝 샘플 미리보기</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;500;700;900&display=swap" rel="stylesheet">
+  <style>
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: 'Noto Sans KR', sans-serif;
+      background: #eaf3ed;
+      color: #222;
+    }
+
+    #bgLayer {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      background-image: url('./banner.png');
+      background-size: auto 100vh;
+      background-position-x: 0%;
+      background-position-y: bottom;
+      background-repeat: no-repeat;
+      transition: background-position-x 0.8s ease-in-out;
+    }
+
+    #sliderContainer {
+      position: absolute;
+      inset: 0;
+      z-index: 10;
+      display: flex;
+      overflow: hidden;
+      transition: transform 0.55s ease;
+    }
+
+    .slide {
+      flex: 0 0 100vw;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 3vw;
+      box-sizing: border-box;
+    }
+
+    .content-box {
+      width: min(90vw, 1040px);
+      max-height: calc(100vh - 96px);
+      overflow: hidden;
+      padding: clamp(30px, 4vw, 60px);
+      box-sizing: border-box;
+      background: rgba(255, 255, 255, 0.86);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-radius: 24px;
+      border-top: 6px solid #2ea65a;
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.08);
+      text-align: center;
+    }
+
+    .sample-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px 14px;
+      margin-bottom: 18px;
+      border-radius: 999px;
+      background: rgba(46, 166, 90, 0.12);
+      color: #2d5e3a;
+      font-size: clamp(12px, 0.95vw, 18px);
+      font-weight: 700;
+      letter-spacing: 0.08em;
+    }
+
+    h1,
+    h2 {
+      margin-top: 0;
+      margin-bottom: 1vw;
+      word-break: keep-all;
+      line-height: 1.2;
+    }
+
+    h1 {
+      font-size: clamp(38px, 3.6vw, 66px);
+      font-weight: 900;
+      color: #222;
+    }
+
+    h2 {
+      font-size: clamp(30px, 2.9vw, 54px);
+      font-weight: 700;
+      color: #333;
+    }
+
+    p,
+    .note {
+      margin: 0;
+      white-space: pre-wrap;
+      word-break: keep-all;
+      line-height: 1.7;
+    }
+
+    p {
+      font-size: clamp(20px, 1.8vw, 32px);
+      font-weight: 500;
+      color: #444;
+    }
+
+    .note {
+      margin-top: 1.2vw;
+      padding-top: 1.2vw;
+      border-top: 1px solid #d9e1dc;
+      font-size: clamp(15px, 1.1vw, 22px);
+      color: #5f6b64;
+    }
+
+    #pageIndicator {
+      position: absolute;
+      right: 28px;
+      bottom: 24px;
+      z-index: 20;
+      padding: 10px 16px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.78);
+      color: #4f5f58;
+      font-size: clamp(13px, 1vw, 18px);
+      font-weight: 700;
+    }
+
+    #guideText {
+      position: absolute;
+      left: 28px;
+      bottom: 24px;
+      z-index: 20;
+      padding: 10px 16px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.78);
+      color: #4f5f58;
+      font-size: clamp(13px, 0.95vw, 17px);
+      font-weight: 500;
+    }
+
+    @media (max-width: 900px) {
+      .content-box {
+        width: calc(100vw - 32px);
+        max-height: calc(100vh - 120px);
+        padding: 28px 22px;
+      }
+
+      #pageIndicator,
+      #guideText {
+        bottom: 16px;
+      }
+
+      #guideText {
+        left: 16px;
+        right: 140px;
+        border-radius: 16px;
+      }
+
+      #pageIndicator {
+        right: 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="bgLayer"></div>
+  <div id="sliderContainer"></div>
+  <div id="guideText">샘플 미리보기 · 방향키 또는 화면 좌우 클릭으로 이동</div>
+  <div id="pageIndicator">1 / 12</div>
+
+  <script>
+    const slides = [
+      {
+        title: '용인시민 100인 연석회의',
+        body: '미래의 풍요와 오늘의 삶을 함께 보듬는 용인을 위해\n시민의 지혜를 모으는 자리에 오신 것을 환영합니다.',
+        note: ''
+      },
+      {
+        title: '개회 선언',
+        body: '지금부터 \'용인시민 100인 연석회의 공론장\'을 시작하겠습니다.',
+        note: ''
+      },
+      {
+        title: '환영 및 참가자 안내',
+        body: '바쁘신 와중에도 함께해주신 시민 여러분, 진심으로 감사합니다.\n오늘 이 자리는 다양한 세대와 분야의 시민 100인이 모여\n용인의 현재와 미래를 함께 이야기하는 자리입니다.',
+        note: ''
+      },
+      {
+        title: '공론장 목적',
+        body: '전문가가 아닌 시민이 직접 정책을 만드는 자리입니다.\n정답을 찾는 자리가 아니라, 서로의 경험과 생각을 모아\n실제 지방선거 후보자에게 제안할 \'시민 정책\'을 도출합니다.',
+        note: ''
+      },
+      {
+        title: '진행 방식 안내',
+        body: '총 10개의 주제 테이블이 운영됩니다.\n자신이 관심 있고 직접 이야기 나누고 싶은 주제 테이블에서\n테이블별 퍼실리테이터의 안내에 따라 논의를 진행합니다.',
+        note: '지역 불균형 / 돌봄 시스템 / 기후·에너지 / 맞춤형 일자리 / 주택·교통 / 시민참여 / 지역경제 등'
+      },
+      {
+        title: '우리의 3가지 약속',
+        body: '첫째. 서로의 의견을 존중합니다.\n둘째. 발언 기회를 공평하게 나눕니다.\n셋째. 비판보다는 제안을 중심으로 이야기합니다.',
+        note: ''
+      },
+      {
+        title: '테이블 논의 시작',
+        body: '퍼실리테이터와 함께 구체적인 논의를 시작합니다.\n\n[입열기]\n나는 어떻게 이 자리에 참여하게 되었나요?\n생활, 일, 지역에서의 경험을 편하게 나누어 주세요.',
+        note: ''
+      },
+      {
+        title: '문제 드러내기 및 쟁점 정리',
+        body: '개인의 경험과 불편함을 우리 모두의 문제로 확장합니다.\n유사한 의견을 묶고 점 스티커 투표를 통해\n가장 중요하고 시급하며 실현 가능한 우선순위 쟁점을 선택합니다.',
+        note: ''
+      },
+      {
+        title: '정책 아이디어 도출 및 정교화',
+        body: '선택된 문제를 해결하기 위한 아이디어를 쏟아냅니다.\n평가하지 않기, 많이 내기, 자유롭게 말하기.\n도출된 아이디어를 현실적이고 설득력 있는 시민 정책으로 다듬습니다.',
+        note: ''
+      },
+      {
+        title: '전체 공유 및 발표',
+        body: '각 테이블에서 논의된 핵심 쟁점과 정책 제안을 전체와 함께 나눕니다.\n여러분의 이야기가 어떻게 모였는지 확인해 보겠습니다.',
+        note: '조별 결과 송출 전환은 운영진 화면에서 진행합니다.'
+      },
+      {
+        title: '전체 기념 사진 촬영',
+        body: '모든 발표가 마무리되었습니다.\n오늘의 소중한 자리를 기억하며, 참석해주신 100인의 시민 여러분과\n함께 기념 사진을 촬영하겠습니다.',
+        note: ''
+      },
+      {
+        title: '폐회 및 마무리',
+        body: '긴 시간 함께해주신 시민 여러분, 진심으로 감사합니다.\n오늘 도출된 제안은 지방선거 후보자에게 소중히 전달하겠습니다.\n이상으로 용인시민 100인 연석회의를 모두 마치겠습니다.',
+        note: ''
+      }
+    ];
+
+    const sliderContainer = document.getElementById('sliderContainer');
+    const bgLayer = document.getElementById('bgLayer');
+    const pageIndicator = document.getElementById('pageIndicator');
+    let currentIndex = 0;
+
+    function buildSlides() {
+      slides.forEach(function (slide, index) {
+        const section = document.createElement('section');
+        section.className = 'slide';
+
+        const box = document.createElement('div');
+        box.className = 'content-box';
+
+        const badge = document.createElement('div');
+        badge.className = 'sample-badge';
+        badge.innerText = 'PPT SAMPLE ' + (index + 1);
+        box.appendChild(badge);
+
+        const titleNode = document.createElement(index === 0 ? 'h1' : 'h2');
+        titleNode.innerText = slide.title;
+        box.appendChild(titleNode);
+
+        const bodyNode = document.createElement('p');
+        bodyNode.innerText = slide.body;
+        box.appendChild(bodyNode);
+
+        if (slide.note) {
+          const noteNode = document.createElement('div');
+          noteNode.className = 'note';
+          noteNode.innerText = slide.note;
+          box.appendChild(noteNode);
+        }
+
+        section.appendChild(box);
+        sliderContainer.appendChild(section);
+      });
+    }
+
+    function goToSlide(index) {
+      const safeIndex = Math.min(Math.max(index, 0), slides.length - 1);
+      currentIndex = safeIndex;
+      sliderContainer.style.transform = 'translateX(-' + (safeIndex * 100) + 'vw)';
+      pageIndicator.innerText = (safeIndex + 1) + ' / ' + slides.length;
+
+      const progress = slides.length > 1
+        ? (safeIndex / (slides.length - 1)) * 100
+        : 0;
+      bgLayer.style.backgroundPositionX = progress + '%';
+    }
+
+    function moveSlide(delta) {
+      goToSlide(currentIndex + delta);
+    }
+
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'ArrowRight' || event.key === ' ') {
+        event.preventDefault();
+        moveSlide(1);
+        return;
+      }
+
+      if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        moveSlide(-1);
+      }
+    });
+
+    document.addEventListener('click', function (event) {
+      const midpoint = window.innerWidth / 2;
+      moveSlide(event.clientX >= midpoint ? 1 : -1);
+    });
+
+    buildSlides();
+    goToSlide(0);
+  </script>
+</body>
+</html>

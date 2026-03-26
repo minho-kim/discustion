@@ -644,40 +644,86 @@
       box-shadow: 0 0 25px rgba(255, 0, 204, 0.8);
     }
 
-    .modal-overlay {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.8);
-      justify-content: center;
-      align-items: center;
-      z-index: 999;
-    }
-
-    .modal-content {
-      background: #fff;
-      color: #333;
-      padding: 30px;
-      border-radius: 8px;
-      text-align: center;
-      font-size: 18px;
-      font-weight: bold;
-      max-width: calc(100vw - 40px);
+    .inline-notice {
+      position: sticky;
+      top: 12px;
+      z-index: 3000;
+      margin: 0 auto 16px;
+      width: min(1120px, calc(100vw - 32px));
+      padding: 16px 18px;
+      border-radius: 14px;
+      border: 1px solid #3c4d61;
       box-sizing: border-box;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      background: #18212c;
+      color: #e5edf7;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.22);
     }
 
-    .modal-content button {
-      margin-top: 20px;
-      padding: 10px 30px;
-      background: #0056b3;
-      color: white;
+    .inline-notice[hidden] {
+      display: none;
+    }
+
+    .inline-notice.info {
+      border-color: #355a87;
+      background: #16263b;
+    }
+
+    .inline-notice.success {
+      border-color: #2d7d46;
+      background: #13281a;
+    }
+
+    .inline-notice.warning {
+      border-color: #9a6d1b;
+      background: #33250f;
+    }
+
+    .inline-notice.error,
+    .inline-notice.danger {
+      border-color: #9d3e3e;
+      background: #341616;
+    }
+
+    .inline-notice-text {
+      flex: 1;
+      font-size: 14px;
+      line-height: 1.6;
+      white-space: pre-wrap;
+    }
+
+    .inline-notice-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
+    .inline-notice-btn {
+      padding: 10px 14px;
       border: none;
-      border-radius: 4px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 700;
       cursor: pointer;
-      font-size: 16px;
+    }
+
+    .inline-notice-btn.primary {
+      background: #0f62fe;
+      color: #fff;
+    }
+
+    .inline-notice-btn.secondary {
+      background: #e5e7eb;
+      color: #374151;
+    }
+
+    .inline-notice-btn.danger {
+      background: #c0392b;
+      color: #fff;
     }
 
     .danger-row {
@@ -900,11 +946,16 @@
   </style>
 </head>
 <body>
+  <div id="inlineNotice" class="inline-notice info" hidden>
+    <div id="inlineNoticeText" class="inline-notice-text"></div>
+    <div id="inlineNoticeActions" class="inline-notice-actions"></div>
+  </div>
+
   <div class="panel preview-panel">
     <div class="section-header">
       <h2>현재 송출 화면</h2>
       <div class="section-header-actions">
-        <button class="secondary-btn compact" onclick="openDisplayPage()">디스플레이 열기</button>
+        <button class="secondary-btn compact" onclick="openDisplayPage()">메인 출력 열기</button>
         <button class="secondary-btn compact" onclick="presentOpeningSlides()">오프닝 화면 송출</button>
         <button id="quickPresentSelectedBtn" class="secondary-btn compact primary-action" onclick="presentSelectedTeam()" disabled>선택 조 발표 송출</button>
       </div>
@@ -1031,7 +1082,7 @@
     <p class="danger-note">
       `조별삭제`는 현재 선택된 조 데이터만 지웁니다.<br>
       `전체삭제`는 모든 조 데이터를 지우고 화면 상태를 대기로 초기화합니다.<br>
-      삭제/초기화는 두 번 확인하고, 내려받기는 엑셀에서 열 수 있는 CSV 백업 파일로 저장합니다.
+      삭제/초기화는 화면 상단 확인 배너에서 한 번 더 확인하고, 내려받기는 엑셀에서 열 수 있는 CSV 백업 파일로 저장합니다.
     </p>
   </div>
 
@@ -1048,13 +1099,6 @@
       <div class="shortcut-item"><kbd>F</kbd>피날레 연출을 시작합니다.</div>
     </div>
     <p class="shortcut-note">입력창, 텍스트 영역, 셀렉트 박스에 포커스가 있을 때는 단축키가 동작하지 않습니다. 실수 방지를 위해 `Ctrl`, `Cmd`, `Alt` 조합과 길게 누른 반복 입력도 무시합니다.</p>
-  </div>
-
-  <div id="customModal" class="modal-overlay">
-    <div class="modal-content">
-      <p id="modalText"></p>
-      <button onclick="closeModal()">확인</button>
-    </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -1096,6 +1140,8 @@
     let liveTimerState = 'reset';
     let liveTimerInterval = null;
     let controlChannel = null;
+    let noticeTimeoutId = null;
+    let noticeHasActions = false;
 
     function getDisplayPageUrl() {
       return new URL('display.html', window.location.href).href;
@@ -1123,13 +1169,60 @@
       setOpeningPanelCollapsed(!body.hidden);
     }
 
-    function showModal(msg) {
-      document.getElementById('modalText').innerText = msg;
-      document.getElementById('customModal').style.display = 'flex';
+    function clearInlineNotice() {
+      const notice = document.getElementById('inlineNotice');
+      const actions = document.getElementById('inlineNoticeActions');
+      clearTimeout(noticeTimeoutId);
+      noticeTimeoutId = null;
+      noticeHasActions = false;
+      notice.hidden = true;
+      actions.innerHTML = '';
+      document.getElementById('inlineNoticeText').innerText = '';
     }
 
-    function closeModal() {
-      document.getElementById('customModal').style.display = 'none';
+    function setInlineNotice(type, message, actions, options) {
+      const notice = document.getElementById('inlineNotice');
+      const messageNode = document.getElementById('inlineNoticeText');
+      const actionsNode = document.getElementById('inlineNoticeActions');
+      const settings = options || {};
+
+      clearTimeout(noticeTimeoutId);
+      noticeTimeoutId = null;
+      notice.className = 'inline-notice ' + (type || 'info');
+      messageNode.innerText = message;
+      actionsNode.innerHTML = '';
+      notice.hidden = false;
+      noticeHasActions = Array.isArray(actions) && actions.length > 0;
+
+      if (noticeHasActions) {
+        actions.forEach(function (action) {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'inline-notice-btn ' + (action.tone || 'secondary');
+          button.innerText = action.label;
+          button.onclick = function () {
+            if (action.dismiss !== false) {
+              clearInlineNotice();
+            }
+
+            action.onClick();
+          };
+          actionsNode.appendChild(button);
+        });
+        return;
+      }
+
+      if (settings.autoHideMs) {
+        noticeTimeoutId = setTimeout(function () {
+          clearInlineNotice();
+        }, settings.autoHideMs);
+      }
+    }
+
+    function flashNotice(type, message, autoHideMs) {
+      setInlineNotice(type, message, [], {
+        autoHideMs: autoHideMs === undefined ? 3200 : autoHideMs
+      });
     }
 
     function renderTeamButtons() {
@@ -1228,18 +1321,6 @@
     function getSelectedMinutes() {
       const mins = parseInt(document.getElementById('minInput').value, 10);
       return Number.isFinite(mins) && mins >= 0 ? mins : 5;
-    }
-
-    function askConfirmation(message) {
-      return window.confirm(message);
-    }
-
-    function askDangerConfirmation(firstMessage, secondMessage) {
-      if (!askConfirmation(firstMessage)) {
-        return false;
-      }
-
-      return askConfirmation(secondMessage);
     }
 
     function normalizeWaitingMessage(value) {
@@ -1826,7 +1907,7 @@
         renderControlStatus();
 
         if (showFeedback) {
-          showModal('입력 현황을 새로고침했습니다.');
+          flashNotice('success', '입력 현황을 새로고침했습니다.');
         }
       } catch (error) {
         selectedPreviewLoading = false;
@@ -1838,11 +1919,11 @@
     function handleAdminError(error, fallbackMessage) {
       if (error && error.status === 401) {
         window.PresentationPinGate.reset({ pageKey: 'control' });
-        showModal('관리 인증이 만료되었습니다. 페이지를 새로고침하고 PIN을 다시 입력해 주세요.');
+        setInlineNotice('error', '관리 인증이 만료되었습니다. 페이지를 새로고침하고 PIN을 다시 입력해 주세요.');
         return true;
       }
 
-      showModal(fallbackMessage + ': ' + ((error && error.message) || '연결 상태를 확인해 주세요.'));
+      setInlineNotice('error', fallbackMessage + ': ' + ((error && error.message) || '연결 상태를 확인해 주세요.'));
       return false;
     }
 
@@ -1887,7 +1968,7 @@
           : await appStore.fetchPublicDisplay();
         applyDisplayToUi(display);
       } catch (error) {
-        showModal('상태 동기화 실패: ' + (error.message || 'DB 설정을 확인해 주세요.'));
+        setInlineNotice('error', '상태 동기화 실패: ' + (error.message || 'DB 설정을 확인해 주세요.'));
       }
     }
 
@@ -1926,7 +2007,7 @@
         }
 
         populateOpeningEditor();
-        showModal('오프닝 텍스트를 저장했습니다.');
+        flashNotice('success', '오프닝 텍스트를 저장했습니다.');
       } catch (error) {
         handleAdminError(error, '오프닝 텍스트 저장 실패');
       }
@@ -1951,19 +2032,39 @@
         }
 
         populateOpeningEditor();
-        showModal(selectedOpeningSlideNo + '번째 오프닝 슬라이드부터 송출했습니다.');
+        flashNotice('success', selectedOpeningSlideNo + '번째 오프닝 슬라이드부터 송출했습니다.');
       } catch (error) {
         handleAdminError(error, '오프닝 송출 실패');
       }
     }
 
-    async function presentSelectedTeam() {
+    async function presentSelectedTeam(forceWithoutData) {
       if (!selectedTeamId) {
-        showModal('먼저 확인할 조를 선택해 주세요.');
+        flashNotice('warning', '먼저 확인할 조를 선택해 주세요.');
         return;
       }
 
-      if (!selectedTeamPages.length && !askConfirmation(selectedTeamId + '조는 저장된 데이터가 없습니다. 그래도 모니터에 띄울까요?')) {
+      if (!selectedTeamPages.length && !forceWithoutData) {
+        setInlineNotice(
+          'warning',
+          selectedTeamId + '조는 저장된 데이터가 없습니다. 데이터 없음 화면으로 그래도 송출할까요?',
+          [
+            {
+              label: '그래도 송출',
+              tone: 'danger',
+              onClick: function () {
+                presentSelectedTeam(true);
+              }
+            },
+            {
+              label: '취소',
+              tone: 'secondary',
+              onClick: function () {
+                renderControlStatus();
+              }
+            }
+          ]
+        );
         return;
       }
 
@@ -1980,7 +2081,7 @@
           await refreshStatus();
         }
 
-        showModal(selectedTeamId + '조를 1페이지부터 송출했습니다.');
+        flashNotice('success', selectedTeamId + '조를 1페이지부터 송출했습니다.');
       } catch (error) {
         await refreshStatus();
         handleAdminError(error, '조 송출 실패');
@@ -1999,7 +2100,7 @@
           applyDisplayToUi(result.publicDisplay);
         }
 
-        showModal('빔프로젝터에 피날레 연출이 시작되었습니다!');
+        flashNotice('success', '빔프로젝터에 피날레 연출이 시작되었습니다!');
       } catch (error) {
         handleAdminError(error, '피날레 시작 실패');
       }
@@ -2021,7 +2122,7 @@
           await refreshStatus();
         }
 
-        showModal('대기화면 문구를 저장했습니다.');
+        flashNotice('success', '대기화면 문구를 저장했습니다.');
       } catch (error) {
         handleAdminError(error, '대기화면 문구 저장 실패');
       }
@@ -2046,7 +2147,7 @@
           await refreshStatus();
         }
 
-        showModal('대기화면으로 전환되었습니다.');
+        flashNotice('success', '대기화면으로 전환되었습니다.');
       } catch (error) {
         handleAdminError(error, '대기화면 전환 실패');
       }
@@ -2103,7 +2204,7 @@
         return true;
       }
 
-      if (document.getElementById('customModal').style.display === 'flex') {
+      if (noticeHasActions) {
         return true;
       }
 
@@ -2210,55 +2311,75 @@
 
     async function deleteSelectedTeamData() {
       if (!selectedTeamId) {
-        showModal('먼저 삭제할 조를 선택해 주세요.');
+        flashNotice('warning', '먼저 삭제할 조를 선택해 주세요.');
         return;
       }
 
-      if (!askDangerConfirmation(
-        selectedTeamId + '조 데이터를 삭제할까요?',
-        selectedTeamId + '조 데이터를 정말 삭제합니다. 되돌릴 수 없습니다. 계속할까요?'
-      )) {
-        return;
-      }
-
-      try {
-        await appStore.adminDeleteTeamPages(selectedTeamId, adminAccessToken);
-        selectedTeamPages = [];
-        selectedPreviewPageNo = 1;
-        updateTeamSummary(selectedTeamId, []);
-        await refreshTeamCatalog(true, false);
-        await refreshStatus();
-        showModal(selectedTeamId + '조 데이터가 삭제되었습니다.');
-      } catch (error) {
-        handleAdminError(error, '조별삭제 실패');
-      }
+      setInlineNotice(
+        'danger',
+        selectedTeamId + '조 데이터를 삭제합니다. 되돌릴 수 없습니다.',
+        [
+          {
+            label: '조별삭제 실행',
+            tone: 'danger',
+            onClick: async function () {
+              try {
+                await appStore.adminDeleteTeamPages(selectedTeamId, adminAccessToken);
+                selectedTeamPages = [];
+                selectedPreviewPageNo = 1;
+                updateTeamSummary(selectedTeamId, []);
+                await refreshTeamCatalog(true, false);
+                await refreshStatus();
+                flashNotice('success', selectedTeamId + '조 데이터가 삭제되었습니다.');
+              } catch (error) {
+                handleAdminError(error, '조별삭제 실패');
+              }
+            }
+          },
+          {
+            label: '취소',
+            tone: 'secondary',
+            onClick: function () {}
+          }
+        ]
+      );
     }
 
     async function deleteAllData() {
-      if (!askDangerConfirmation(
-        '모든 조 데이터를 삭제하고 화면 상태도 초기화할까요?',
-        '전체 데이터 삭제와 대기화면 초기화를 지금 실행합니다. 되돌릴 수 없습니다. 계속할까요?'
-      )) {
-        return;
-      }
+      setInlineNotice(
+        'danger',
+        '모든 조 데이터를 삭제하고 화면 상태도 대기화면으로 초기화합니다. 되돌릴 수 없습니다.',
+        [
+          {
+            label: '전체삭제 실행',
+            tone: 'danger',
+            onClick: async function () {
+              try {
+                const result = await appStore.adminDeleteAllPages(adminAccessToken);
+                selectedTeamPages = [];
+                selectedPreviewPageNo = 1;
+                teamSummaries = {};
 
-      try {
-        const result = await appStore.adminDeleteAllPages(adminAccessToken);
-        selectedTeamPages = [];
-        selectedPreviewPageNo = 1;
-        teamSummaries = {};
+                if (result && result.publicDisplay) {
+                  applyDisplayToUi(result.publicDisplay);
+                } else {
+                  await refreshStatus();
+                }
 
-        if (result && result.publicDisplay) {
-          applyDisplayToUi(result.publicDisplay);
-        } else {
-          await refreshStatus();
-        }
-
-        await refreshTeamCatalog(true, false);
-        showModal('전체 데이터가 삭제되고 화면 상태가 초기화되었습니다.');
-      } catch (error) {
-        handleAdminError(error, '전체삭제 실패');
-      }
+                await refreshTeamCatalog(true, false);
+                flashNotice('success', '전체 데이터가 삭제되고 화면 상태가 초기화되었습니다.');
+              } catch (error) {
+                handleAdminError(error, '전체삭제 실패');
+              }
+            }
+          },
+          {
+            label: '취소',
+            tone: 'secondary',
+            onClick: function () {}
+          }
+        ]
+      );
     }
 
     async function downloadAllData() {
@@ -2266,7 +2387,7 @@
         const rows = await collectBackupRows();
         const csv = buildBackupCsv(rows);
         downloadTextFile(buildBackupFilename(), csv, 'text/csv;charset=utf-8;');
-        showModal('엑셀에서 열 수 있는 CSV 백업 파일을 내려받았습니다.');
+        flashNotice('success', '엑셀에서 열 수 있는 CSV 백업 파일을 내려받았습니다.');
       } catch (error) {
         handleAdminError(error, '데이터 내려받기 실패');
       }
@@ -2280,13 +2401,6 @@
 
       await refreshStatus();
     }
-
-    window.addEventListener('beforeunload', function (event) {
-      if (waitingMessageDirty || openingSlidesDirty) {
-        event.preventDefault();
-        event.returnValue = '';
-      }
-    });
 
     window.addEventListener('unload', function () {
       clearInterval(liveTimerInterval);
