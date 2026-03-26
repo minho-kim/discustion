@@ -111,6 +111,30 @@
       color: #333;
     }
 
+    .save-status {
+      margin: 14px 0 18px;
+      padding: 12px 14px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 700;
+      line-height: 1.5;
+    }
+
+    .save-status.clean {
+      background: #edf7ee;
+      color: #1e7a31;
+    }
+
+    .save-status.dirty {
+      background: #fff4e5;
+      color: #ad5c00;
+    }
+
+    .save-status.loading {
+      background: #eef5ff;
+      color: #1d4ed8;
+    }
+
     .page-block {
       background: #f9fdfc;
       border: 1px solid #cce5ff;
@@ -162,6 +186,18 @@
     textarea {
       height: 100px;
       resize: vertical;
+    }
+
+    .field-note {
+      margin-top: 8px;
+      color: #64748b;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .field-note.warning {
+      color: #b45309;
+      font-weight: 700;
     }
 
     .action-row {
@@ -248,6 +284,8 @@
       <option value="10">10조</option>
     </select>
 
+    <div id="saveStatus" class="save-status loading">저장된 데이터를 불러오는 중입니다.</div>
+
     <div id="pagesContainer"></div>
 
     <div class="action-row">
@@ -270,7 +308,13 @@
   <script src="./supabase-client.js"></script>
   <script>
     const appStore = window.PresentationStore;
+    const TITLE_SOFT_LIMIT = 28;
+    const CONTENT_SOFT_LIMIT = 220;
     let adminAccessToken = '';
+    let currentLoadedTeamId = null;
+    let lastSavedSnapshot = '[]';
+    let hasUnsavedChanges = false;
+    let isHydratingForm = false;
 
     function showModal(msg) {
       document.getElementById('modalText').innerText = msg;
@@ -279,6 +323,95 @@
 
     function closeModal() {
       document.getElementById('customModal').style.display = 'none';
+    }
+
+    function setSaveStatus(state, message) {
+      const node = document.getElementById('saveStatus');
+      node.className = 'save-status ' + state;
+      node.innerText = message;
+    }
+
+    function setDirtyState(isDirty) {
+      hasUnsavedChanges = Boolean(isDirty);
+
+      if (hasUnsavedChanges) {
+        setSaveStatus('dirty', '저장되지 않은 수정이 있습니다. 조를 바꾸거나 페이지를 닫기 전에 저장해 주세요.');
+      } else {
+        setSaveStatus('clean', '현재 화면은 서버에 저장된 내용과 같습니다.');
+      }
+    }
+
+    function normalizeText(value) {
+      return String(value || '').replace(/\r\n/g, '\n').trim();
+    }
+
+    function collectCurrentPagesData() {
+      const blocks = document
+        .getElementById('pagesContainer')
+        .getElementsByClassName('page-block');
+      const pagesData = [];
+
+      for (let i = 0; i < blocks.length; i++) {
+        const titleVal = normalizeText(blocks[i].getElementsByClassName('input-title')[0].value);
+        const contentVal = normalizeText(blocks[i].getElementsByClassName('input-content')[0].value);
+        pagesData.push({ title: titleVal, content: contentVal });
+      }
+
+      return pagesData;
+    }
+
+    function buildPagesSnapshot(pagesData) {
+      return JSON.stringify(pagesData || []);
+    }
+
+    function syncDirtyState() {
+      if (isHydratingForm) {
+        return;
+      }
+
+      setDirtyState(buildPagesSnapshot(collectCurrentPagesData()) !== lastSavedSnapshot);
+    }
+
+    function updateFieldGuides(block) {
+      if (!block) {
+        return;
+      }
+
+      const titleInput = block.getElementsByClassName('input-title')[0];
+      const contentTextarea = block.getElementsByClassName('input-content')[0];
+      const titleNote = block.getElementsByClassName('title-note')[0];
+      const contentNote = block.getElementsByClassName('content-note')[0];
+      const titleCount = normalizeText(titleInput.value).length;
+      const contentCount = normalizeText(contentTextarea.value).length;
+
+      titleNote.className = titleCount > TITLE_SOFT_LIMIT ? 'field-note warning title-note' : 'field-note title-note';
+      titleNote.innerText = '현재 ' + titleCount + '자 / 권장 ' + TITLE_SOFT_LIMIT + '자 이하';
+
+      contentNote.className = contentCount > CONTENT_SOFT_LIMIT ? 'field-note warning content-note' : 'field-note content-note';
+      contentNote.innerText = contentCount > CONTENT_SOFT_LIMIT
+        ? '현재 ' + contentCount + '자 / ' + CONTENT_SOFT_LIMIT + '자가 넘어가면 답답해 보일 수 있습니다.'
+        : '현재 ' + contentCount + '자 / 권장 ' + CONTENT_SOFT_LIMIT + '자 이하';
+    }
+
+    function rememberCleanState(teamId) {
+      currentLoadedTeamId = teamId;
+      lastSavedSnapshot = buildPagesSnapshot(collectCurrentPagesData());
+      setDirtyState(false);
+    }
+
+    function attachPageBlockListeners(block) {
+      const titleInput = block.getElementsByClassName('input-title')[0];
+      const contentTextarea = block.getElementsByClassName('input-content')[0];
+
+      titleInput.addEventListener('input', function () {
+        updateFieldGuides(block);
+        syncDirtyState();
+      });
+
+      contentTextarea.addEventListener('input', function () {
+        updateFieldGuides(block);
+        syncDirtyState();
+      });
     }
 
     function createPageBlock(pageData) {
@@ -310,6 +443,9 @@
       titleInput.placeholder = '1~2줄 이내로 요약해 주세요.';
       titleInput.value = pageData && pageData.title ? pageData.title : '';
 
+      const titleNote = document.createElement('div');
+      titleNote.className = 'field-note title-note';
+
       const inputLabel2 = document.createElement('label');
       inputLabel2.innerText = '세부 논의 내용';
 
@@ -318,12 +454,19 @@
       contentTextarea.placeholder = '내용을 자유롭게 입력해 주세요.';
       contentTextarea.value = pageData && pageData.content ? pageData.content : '';
 
+      const contentNote = document.createElement('div');
+      contentNote.className = 'field-note content-note';
+
       block.appendChild(headerRow);
       block.appendChild(inputLabel1);
       block.appendChild(titleInput);
+      block.appendChild(titleNote);
       block.appendChild(inputLabel2);
       block.appendChild(contentTextarea);
+      block.appendChild(contentNote);
 
+      attachPageBlockListeners(block);
+      updateFieldGuides(block);
       return block;
     }
 
@@ -346,6 +489,10 @@
       const newBlock = createPageBlock(pageData);
       container.appendChild(newBlock);
       updatePageNumbers();
+
+      if (!isHydratingForm) {
+        syncDirtyState();
+      }
     }
 
     function removePage(blockElement) {
@@ -359,11 +506,19 @@
 
       container.removeChild(blockElement);
       updatePageNumbers();
+      syncDirtyState();
     }
 
-    async function loadTeamPages() {
-      const teamId = parseInt(document.getElementById('teamSelect').value, 10);
+    async function loadTeamPages(teamIdOverride) {
+      const select = document.getElementById('teamSelect');
+      const teamId = Number.isInteger(teamIdOverride)
+        ? teamIdOverride
+        : parseInt(select.value, 10);
       const container = document.getElementById('pagesContainer');
+
+      select.value = String(teamId);
+      isHydratingForm = true;
+      setSaveStatus('loading', teamId + '조 데이터를 불러오는 중입니다.');
       container.innerHTML = '';
 
       try {
@@ -371,14 +526,18 @@
 
         if (!pages.length) {
           addPage();
+          rememberCleanState(teamId);
           return;
         }
 
         pages.forEach(function (page) {
           addPage(page);
         });
+        rememberCleanState(teamId);
       } catch (error) {
         addPage();
+        rememberCleanState(teamId);
+
         if (error.status === 401) {
           window.PresentationPinGate.reset({ pageKey: 'input' });
           showModal('관리 인증이 만료되었습니다. 페이지를 새로고침하고 PIN을 다시 입력해 주세요.');
@@ -386,27 +545,43 @@
         }
 
         showModal('기존 데이터를 불러오지 못했습니다. 새로 입력은 가능합니다.');
+      } finally {
+        isHydratingForm = false;
       }
+    }
+
+    async function handleTeamSelectChange(event) {
+      const nextTeamId = parseInt(event.target.value, 10);
+
+      if (currentLoadedTeamId === null) {
+        await loadTeamPages(nextTeamId);
+        return;
+      }
+
+      if (nextTeamId === currentLoadedTeamId) {
+        return;
+      }
+
+      if (hasUnsavedChanges && !window.confirm('저장되지 않은 수정이 있습니다. 저장하지 않고 ' + nextTeamId + '조로 이동할까요?')) {
+        event.target.value = String(currentLoadedTeamId);
+        return;
+      }
+
+      await loadTeamPages(nextTeamId);
     }
 
     async function submitData() {
       const teamId = parseInt(document.getElementById('teamSelect').value, 10);
-      const blocks = document
-        .getElementById('pagesContainer')
-        .getElementsByClassName('page-block');
+      const pagesData = collectCurrentPagesData();
 
-      const pagesData = [];
-
-      for (let i = 0; i < blocks.length; i++) {
-        const titleVal = blocks[i].getElementsByClassName('input-title')[0].value.trim();
-        const contentVal = blocks[i].getElementsByClassName('input-content')[0].value.trim();
+      for (let i = 0; i < pagesData.length; i++) {
+        const titleVal = pagesData[i].title;
+        const contentVal = pagesData[i].content;
 
         if (!titleVal || !contentVal) {
           showModal((i + 1) + '번째 장의 주제와 내용을 모두 입력하세요.');
           return;
         }
-
-        pagesData.push({ title: titleVal, content: contentVal });
       }
 
       const submitBtn = document.getElementById('submitBtn');
@@ -415,6 +590,9 @@
 
       try {
         await appStore.adminSavePages(teamId, pagesData, adminAccessToken);
+        currentLoadedTeamId = teamId;
+        lastSavedSnapshot = buildPagesSnapshot(pagesData);
+        setDirtyState(false);
         showModal(teamId + '조의 ' + pagesData.length + '개 페이지 데이터가 성공적으로 저장되었습니다.');
       } catch (error) {
         if (error.status === 401) {
@@ -430,13 +608,22 @@
       }
     }
 
+    window.addEventListener('beforeunload', function (event) {
+      if (!hasUnsavedChanges) {
+        return;
+      }
+
+      event.preventDefault();
+      event.returnValue = '';
+    });
+
     window.onload = function () {
       window.PresentationPinGate
         .mount({ pageKey: 'input', pageTitle: '퍼실리테이터 입력 화면' })
         .then(function (session) {
           adminAccessToken = session && session.accessToken ? session.accessToken : '';
-          document.getElementById('teamSelect').addEventListener('change', loadTeamPages);
-          loadTeamPages();
+          document.getElementById('teamSelect').addEventListener('change', handleTeamSelectChange);
+          loadTeamPages(parseInt(document.getElementById('teamSelect').value, 10));
         });
     };
   </script>

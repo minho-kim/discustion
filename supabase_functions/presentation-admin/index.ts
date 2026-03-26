@@ -217,6 +217,7 @@ async function fetchStateRow() {
       mode: 'waiting',
       current_team_id: null,
       current_page_no: 1,
+      waiting_message: '발표를 대기 중입니다.',
       timer_state: 'reset',
       timer_remain_secs: 300,
       timer_last_action_at: new Date().toISOString(),
@@ -244,6 +245,7 @@ async function resetStateToWaiting() {
     mode: 'waiting',
     current_team_id: null,
     current_page_no: 1,
+    waiting_message: '발표를 대기 중입니다.',
     timer_state: 'reset',
     timer_remain_secs: 300,
     timer_last_action_at: new Date().toISOString(),
@@ -289,6 +291,16 @@ function sanitizeStatePatch(input: Record<string, unknown>) {
     }
 
     patch.current_page_no = pageNo
+  }
+
+  if (input.waiting_message !== undefined) {
+    const waitingMessage = String(input.waiting_message || '').trim()
+
+    if (waitingMessage.length > 120) {
+      throw new Error('waiting_message는 120자 이하로 입력해 주세요.')
+    }
+
+    patch.waiting_message = waitingMessage || '발표를 대기 중입니다.'
   }
 
   if (input.timer_state !== undefined) {

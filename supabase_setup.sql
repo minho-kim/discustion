@@ -17,6 +17,7 @@ create table if not exists public.discussion_presentation_state (
   mode text not null default 'waiting' check (mode in ('waiting', 'show', 'finale')),
   current_team_id integer null check (current_team_id between 1 and 10),
   current_page_no integer not null default 1 check (current_page_no >= 1),
+  waiting_message text not null default '발표를 대기 중입니다.',
   timer_state text not null default 'reset' check (timer_state in ('reset', 'playing', 'paused')),
   timer_remain_secs integer not null default 300 check (timer_remain_secs >= 0),
   timer_last_action_at timestamptz not null default timezone('utc', now()),
@@ -31,12 +32,19 @@ create table if not exists public.discussion_public_display (
   total_pages integer not null default 1 check (total_pages >= 1),
   title text not null default '',
   content text not null default '',
+  waiting_message text not null default '발표를 대기 중입니다.',
   timer_state text not null default 'reset' check (timer_state in ('reset', 'playing', 'paused')),
   timer_remain_secs integer not null default 300 check (timer_remain_secs >= 0),
   timer_last_action_at timestamptz not null default timezone('utc', now()),
   finale_titles jsonb not null default '[]'::jsonb,
   updated_at timestamptz not null default timezone('utc', now())
 );
+
+alter table public.discussion_presentation_state
+add column if not exists waiting_message text not null default '발표를 대기 중입니다.';
+
+alter table public.discussion_public_display
+add column if not exists waiting_message text not null default '발표를 대기 중입니다.';
 
 create or replace function public.set_discussion_updated_at()
 returns trigger
@@ -64,6 +72,7 @@ insert into public.discussion_presentation_state (
   id,
   mode,
   current_page_no,
+  waiting_message,
   timer_state,
   timer_remain_secs,
   timer_last_action_at
@@ -72,6 +81,7 @@ values (
   1,
   'waiting',
   1,
+  '발표를 대기 중입니다.',
   'reset',
   300,
   timezone('utc', now())
@@ -85,6 +95,7 @@ insert into public.discussion_public_display (
   total_pages,
   title,
   content,
+  waiting_message,
   timer_state,
   timer_remain_secs,
   timer_last_action_at,
@@ -97,6 +108,7 @@ values (
   1,
   '',
   '',
+  '발표를 대기 중입니다.',
   'reset',
   300,
   timezone('utc', now()),
@@ -118,6 +130,7 @@ declare
   v_total_pages integer := 1;
   v_title text := '';
   v_content text := '';
+  v_waiting_message text := '발표를 대기 중입니다.';
   v_finale_titles jsonb := '[]'::jsonb;
   v_page record;
 begin
@@ -131,10 +144,13 @@ begin
     v_state.mode := 'waiting';
     v_state.current_team_id := null;
     v_state.current_page_no := 1;
+    v_state.waiting_message := '발표를 대기 중입니다.';
     v_state.timer_state := 'reset';
     v_state.timer_remain_secs := 300;
     v_state.timer_last_action_at := timezone('utc', now());
   end if;
+
+  v_waiting_message := coalesce(nullif(trim(v_state.waiting_message), ''), '발표를 대기 중입니다.');
 
   v_current_page := greatest(coalesce(v_state.current_page_no, 1), 1);
 
@@ -214,6 +230,7 @@ begin
     total_pages,
     title,
     content,
+    waiting_message,
     timer_state,
     timer_remain_secs,
     timer_last_action_at,
@@ -228,6 +245,7 @@ begin
     v_total_pages,
     v_title,
     v_content,
+    v_waiting_message,
     coalesce(v_state.timer_state, 'reset'),
     coalesce(v_state.timer_remain_secs, 300),
     coalesce(v_state.timer_last_action_at, timezone('utc', now())),
@@ -241,6 +259,7 @@ begin
       total_pages = excluded.total_pages,
       title = excluded.title,
       content = excluded.content,
+      waiting_message = excluded.waiting_message,
       timer_state = excluded.timer_state,
       timer_remain_secs = excluded.timer_remain_secs,
       timer_last_action_at = excluded.timer_last_action_at,

@@ -378,7 +378,7 @@
       } else {
         waitingView.innerText = res.status === 'nodata'
           ? res.teamId + '조의 데이터가 없습니다.'
-          : '발표를 대기 중입니다.';
+          : (res.waitingMessage || '발표를 대기 중입니다.');
         waitingView.style.display = 'flex';
         displayView.style.display = 'none';
       }

@@ -274,6 +274,44 @@
       background: #2d4259;
     }
 
+    .waiting-editor {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid #415163;
+    }
+
+    .waiting-editor label {
+      display: block;
+      margin-bottom: 8px;
+      color: #dbe6f3;
+      font-weight: 700;
+    }
+
+    .waiting-editor textarea {
+      width: 100%;
+      min-height: 82px;
+      padding: 12px;
+      border: 1px solid #4f6278;
+      border-radius: 10px;
+      background: #101722;
+      color: #fff;
+      font: inherit;
+      box-sizing: border-box;
+      resize: vertical;
+    }
+
+    .waiting-editor-note {
+      margin-top: 8px;
+      color: #9fb0c2;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .waiting-editor-note.warning {
+      color: #ffc76b;
+      font-weight: 700;
+    }
+
     .page-ctrl {
       display: flex;
       justify-content: space-between;
@@ -583,6 +621,47 @@
       font-size: 12px;
     }
 
+    .shortcut-panel {
+      background: #2d3440;
+    }
+
+    .shortcut-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 10px;
+    }
+
+    .shortcut-item {
+      padding: 12px 14px;
+      border-radius: 10px;
+      background: #18212c;
+      border: 1px solid #415163;
+      color: #d8e1ec;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .shortcut-item kbd {
+      display: inline-block;
+      min-width: 56px;
+      margin-right: 8px;
+      padding: 3px 7px;
+      border-radius: 6px;
+      background: #0f1722;
+      border: 1px solid #3c4d61;
+      color: #9fd2ff;
+      font-size: 12px;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    .shortcut-note {
+      margin: 14px 0 0;
+      color: #a8b6c5;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
     @media (max-width: 640px) {
       .panel {
         padding: 20px;
@@ -631,6 +710,14 @@
       <button id="liveNextPageBtn" class="page-btn" onclick="movePage(1)">현재 송출 다음 장 ▶</button>
     </div>
     <button class="btn-waiting" onclick="setWaitingMode()">대기화면으로 전환</button>
+    <div class="waiting-editor">
+      <label for="waitingMessageInput">대기화면 문구</label>
+      <textarea id="waitingMessageInput" placeholder="대기화면에 보여줄 문구를 입력해 주세요.">발표를 대기 중입니다.</textarea>
+      <div id="waitingMessageNote" class="waiting-editor-note">현재 10자 / 권장 36자 이하</div>
+      <div class="panel-tools">
+        <button class="secondary-btn" onclick="saveWaitingMessage()">문구만 저장</button>
+      </div>
+    </div>
   </div>
 
   <div class="panel">
@@ -691,6 +778,20 @@
     </p>
   </div>
 
+  <div class="panel shortcut-panel">
+    <h2>5. 운영 단축키</h2>
+    <div class="shortcut-list">
+      <div class="shortcut-item"><kbd>1~9, 0</kbd>선택 조를 미리보기로 불러옵니다. `0`은 10조입니다.</div>
+      <div class="shortcut-item"><kbd>Enter</kbd>현재 선택한 조를 1페이지부터 송출합니다.</div>
+      <div class="shortcut-item"><kbd>← / →</kbd>현재 송출 중인 페이지를 이전/다음 장으로 넘깁니다.</div>
+      <div class="shortcut-item"><kbd>Space</kbd>타이머를 시작하거나 일시정지합니다.</div>
+      <div class="shortcut-item"><kbd>R</kbd>입력한 분 수 기준으로 타이머를 초기화합니다.</div>
+      <div class="shortcut-item"><kbd>W</kbd>현재 대기화면 문구로 대기화면으로 전환합니다.</div>
+      <div class="shortcut-item"><kbd>F</kbd>피날레 연출을 시작합니다.</div>
+    </div>
+    <p class="shortcut-note">입력창, 텍스트 영역, 셀렉트 박스에 포커스가 있을 때는 단축키가 동작하지 않습니다. 실수 방지를 위해 `Ctrl`, `Cmd`, `Alt` 조합과 길게 누른 반복 입력도 무시합니다.</p>
+  </div>
+
   <div id="customModal" class="modal-overlay">
     <div class="modal-content">
       <p id="modalText"></p>
@@ -705,6 +806,8 @@
   <script src="./supabase-client.js"></script>
   <script>
     const appStore = window.PresentationStore;
+    const DEFAULT_WAITING_MESSAGE = '발표를 대기 중입니다.';
+    const WAITING_MESSAGE_SOFT_LIMIT = 36;
 
     let adminAccessToken = '';
     let currentDisplayStatus = 'waiting';
@@ -721,6 +824,8 @@
       remain: 300,
       lastAction: new Date().toISOString()
     };
+    let syncedWaitingMessage = DEFAULT_WAITING_MESSAGE;
+    let waitingMessageDirty = false;
     let liveTimerValue = 300;
     let liveTimerState = 'reset';
     let liveTimerInterval = null;
@@ -840,6 +945,46 @@
       }
 
       return askConfirmation(secondMessage);
+    }
+
+    function normalizeWaitingMessage(value) {
+      const trimmed = String(value || '').trim();
+      return trimmed || DEFAULT_WAITING_MESSAGE;
+    }
+
+    function updateWaitingMessageUi() {
+      const input = document.getElementById('waitingMessageInput');
+      const note = document.getElementById('waitingMessageNote');
+      const message = normalizeWaitingMessage(input.value);
+      const count = message.length;
+      const baseMessage = count > WAITING_MESSAGE_SOFT_LIMIT
+        ? '현재 ' + count + '자 / ' + WAITING_MESSAGE_SOFT_LIMIT + '자가 넘어가면 대기화면이 답답해 보일 수 있습니다.'
+        : '현재 ' + count + '자 / 권장 ' + WAITING_MESSAGE_SOFT_LIMIT + '자 이하';
+
+      note.className = count > WAITING_MESSAGE_SOFT_LIMIT
+        ? 'waiting-editor-note warning'
+        : 'waiting-editor-note';
+
+      note.innerText = waitingMessageDirty ? baseMessage + ' · 저장 전' : baseMessage;
+    }
+
+    function syncWaitingMessageEditor(message, forceSync) {
+      const input = document.getElementById('waitingMessageInput');
+      const nextMessage = normalizeWaitingMessage(message);
+
+      if (!waitingMessageDirty || forceSync) {
+        input.value = nextMessage;
+        waitingMessageDirty = false;
+      }
+
+      syncedWaitingMessage = nextMessage;
+      updateWaitingMessageUi();
+    }
+
+    function handleWaitingMessageInput() {
+      const currentValue = normalizeWaitingMessage(document.getElementById('waitingMessageInput').value);
+      waitingMessageDirty = currentValue !== syncedWaitingMessage;
+      updateWaitingMessageUi();
     }
 
     function updateTeamSummary(teamId, pages) {
@@ -1018,8 +1163,8 @@
       badge.innerText = '대기화면';
       meta.innerText = '현재 메인 화면이 대기 상태입니다.';
       summary.innerText = '화면 모드: 대기';
-      title.innerText = '발표를 대기 중입니다.';
-      content.innerText = '조를 선택하면 여기서 현재 디스플레이에 나가는 주제와 내용을 함께 확인할 수 있습니다.';
+      title.innerText = payload.waitingMessage || DEFAULT_WAITING_MESSAGE;
+      content.innerText = '현재 메인 화면에는 이 문구가 표시됩니다.';
       renderFinalePreview([]);
     }
 
@@ -1066,6 +1211,7 @@
         'display_team_id',
         'display_current_page',
         'display_total_pages',
+        'display_waiting_message',
         'display_timer_state',
         'display_timer_remain_secs',
         'team_id',
@@ -1122,6 +1268,7 @@
               display_team_id: publicDisplay.team_id,
               display_current_page: publicDisplay.current_page,
               display_total_pages: publicDisplay.total_pages,
+              display_waiting_message: publicDisplay.waiting_message,
               display_timer_state: publicDisplay.timer_state,
               display_timer_remain_secs: remainingSeconds,
               team_id: entry.teamId,
@@ -1138,6 +1285,7 @@
             display_team_id: publicDisplay.team_id,
             display_current_page: publicDisplay.current_page,
             display_total_pages: publicDisplay.total_pages,
+            display_waiting_message: publicDisplay.waiting_message,
             display_timer_state: publicDisplay.timer_state,
             display_timer_remain_secs: remainingSeconds,
             team_id: entry.teamId,
@@ -1238,6 +1386,7 @@
 
       renderControlStatus();
       syncLiveTimer(previewPayload.timer);
+      syncWaitingMessageEditor(display.waiting_message, false);
       renderPreview(previewPayload);
     }
 
@@ -1319,13 +1468,40 @@
       }
     }
 
+    async function saveWaitingMessage() {
+      const waitingMessage = normalizeWaitingMessage(document.getElementById('waitingMessageInput').value);
+
+      try {
+        const result = await appStore.adminSetState({
+          waiting_message: waitingMessage
+        }, adminAccessToken);
+
+        syncWaitingMessageEditor(waitingMessage, true);
+
+        if (result && result.publicDisplay) {
+          applyDisplayToUi(result.publicDisplay);
+        } else {
+          await refreshStatus();
+        }
+
+        showModal('대기화면 문구를 저장했습니다.');
+      } catch (error) {
+        handleAdminError(error, '대기화면 문구 저장 실패');
+      }
+    }
+
     async function setWaitingMode() {
+      const waitingMessage = normalizeWaitingMessage(document.getElementById('waitingMessageInput').value);
+
       try {
         const result = await appStore.adminSetState({
           mode: 'waiting',
           current_team_id: null,
-          current_page_no: 1
+          current_page_no: 1,
+          waiting_message: waitingMessage
         }, adminAccessToken);
+
+        syncWaitingMessageEditor(waitingMessage, true);
 
         if (result && result.publicDisplay) {
           applyDisplayToUi(result.publicDisplay);
@@ -1373,6 +1549,88 @@
       renderControlStatus();
     }
 
+    function shouldIgnoreShortcut(event) {
+      if (event.metaKey || event.ctrlKey || event.altKey || event.repeat) {
+        return true;
+      }
+
+      if (document.getElementById('customModal').style.display === 'flex') {
+        return true;
+      }
+
+      const activeElement = document.activeElement;
+
+      if (!activeElement) {
+        return false;
+      }
+
+      const tagName = activeElement.tagName;
+
+      return tagName === 'INPUT' ||
+        tagName === 'TEXTAREA' ||
+        tagName === 'SELECT' ||
+        activeElement.isContentEditable;
+    }
+
+    function handleShortcutKeydown(event) {
+      if (shouldIgnoreShortcut(event)) {
+        return;
+      }
+
+      if (/^[1-9]$/.test(event.key)) {
+        event.preventDefault();
+        selectTeam(parseInt(event.key, 10));
+        return;
+      }
+
+      if (event.key === '0') {
+        event.preventDefault();
+        selectTeam(10);
+        return;
+      }
+
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        presentSelectedTeam();
+        return;
+      }
+
+      if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        movePage(-1);
+        return;
+      }
+
+      if (event.key === 'ArrowRight') {
+        event.preventDefault();
+        movePage(1);
+        return;
+      }
+
+      if (event.key === ' ') {
+        event.preventDefault();
+        timerAction(timerSnapshot.state === 'playing' ? 'paused' : 'playing');
+        return;
+      }
+
+      if (event.key === 'r' || event.key === 'R') {
+        event.preventDefault();
+        timerAction('reset');
+        return;
+      }
+
+      if (event.key === 'w' || event.key === 'W') {
+        event.preventDefault();
+        setWaitingMode();
+        return;
+      }
+
+      if (event.key === 'f' || event.key === 'F') {
+        event.preventDefault();
+        triggerFinale();
+      }
+    }
+
     async function timerAction(state) {
       let nextRemainSecs = appStore.computeRemainingSeconds(timerSnapshot);
 
@@ -1390,8 +1648,6 @@
         if (result && result.publicDisplay) {
           applyDisplayToUi(result.publicDisplay);
         }
-
-        showModal('타이머 ' + state + ' 명령이 전송되었습니다.');
       } catch (error) {
         handleAdminError(error, '타이머 제어 실패');
       }
@@ -1470,8 +1726,16 @@
       await refreshStatus();
     }
 
-    window.addEventListener('beforeunload', function () {
+    window.addEventListener('beforeunload', function (event) {
+      if (waitingMessageDirty) {
+        event.preventDefault();
+        event.returnValue = '';
+      }
+    });
+
+    window.addEventListener('unload', function () {
       clearInterval(liveTimerInterval);
+      window.removeEventListener('keydown', handleShortcutKeydown);
       appStore.unsubscribe(controlChannel);
     });
 
@@ -1479,6 +1743,9 @@
       .mount({ pageKey: 'control', pageTitle: '운영진 리모컨 화면' })
       .then(async function (session) {
         adminAccessToken = session && session.accessToken ? session.accessToken : '';
+        document.getElementById('waitingMessageInput').addEventListener('input', handleWaitingMessageInput);
+        window.addEventListener('keydown', handleShortcutKeydown);
+        syncWaitingMessageEditor(DEFAULT_WAITING_MESSAGE, true);
         renderControlStatus();
         await refreshStatus();
         await refreshTeamCatalog(true, false);

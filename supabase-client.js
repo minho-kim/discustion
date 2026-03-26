@@ -7,6 +7,7 @@
   const config = window.PRESENTATION_SUPABASE_CONFIG;
   const pagesCache = new Map();
   let publicDisplayCache = null;
+  const DEFAULT_WAITING_MESSAGE = '발표를 대기 중입니다.';
 
   const client = createClient(config.url, config.publishableKey, {
     auth: {
@@ -25,6 +26,7 @@
       total_pages: 1,
       title: '',
       content: '',
+      waiting_message: DEFAULT_WAITING_MESSAGE,
       timer_state: 'reset',
       timer_remain_secs: 300,
       timer_last_action_at: new Date().toISOString(),
@@ -38,6 +40,9 @@
     normalized.finale_titles = Array.isArray(normalized.finale_titles)
       ? normalized.finale_titles
       : [];
+    normalized.waiting_message = typeof normalized.waiting_message === 'string' && normalized.waiting_message.trim()
+      ? normalized.waiting_message.trim()
+      : DEFAULT_WAITING_MESSAGE;
     return normalized;
   }
 
@@ -109,6 +114,7 @@
 
     return {
       status: 'waiting',
+      waitingMessage: display.waiting_message || DEFAULT_WAITING_MESSAGE,
       timer: timer
     };
   }
