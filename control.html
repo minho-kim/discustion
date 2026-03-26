@@ -117,6 +117,27 @@
       padding-bottom: 10px;
     }
 
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+
+    .section-header h2 {
+      margin: 0;
+      flex: 1;
+      min-width: 220px;
+    }
+
+    .section-header-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
     .grid {
       display: grid;
       grid-template-columns: repeat(5, 1fr);
@@ -211,6 +232,12 @@
     .secondary-btn:disabled {
       opacity: 0.45;
       cursor: not-allowed;
+    }
+
+    .secondary-btn.compact {
+      flex: 0 0 auto;
+      min-width: 0;
+      white-space: nowrap;
     }
 
     .selection-summary {
@@ -321,6 +348,10 @@
       gap: 10px;
       flex-wrap: wrap;
       margin-bottom: 14px;
+    }
+
+    .opening-panel-body[hidden] {
+      display: none;
     }
 
     .opening-status-pill {
@@ -870,7 +901,12 @@
 </head>
 <body>
   <div class="panel preview-panel">
-    <h2>현재 송출 화면</h2>
+    <div class="section-header">
+      <h2>현재 송출 화면</h2>
+      <div class="section-header-actions">
+        <button class="secondary-btn compact" onclick="openDisplayPage()">디스플레이 열기</button>
+      </div>
+    </div>
     <div class="preview-shell">
       <div class="preview-top">
         <div>
@@ -899,8 +935,14 @@
     </div>
   </div>
 
-  <div class="panel">
-    <h2>1. 오프닝 화면</h2>
+  <div class="panel opening-panel">
+    <div class="section-header">
+      <h2>1. 오프닝 화면</h2>
+      <div class="section-header-actions">
+        <button id="openingToggleBtn" class="secondary-btn compact" onclick="toggleOpeningPanel()">오프닝 펼치기</button>
+      </div>
+    </div>
+    <div id="openingPanelBody" class="opening-panel-body" hidden>
     <div class="panel-tools">
       <button class="secondary-btn primary-action" onclick="presentOpeningSlides()">현재 편집 슬라이드부터 오프닝 송출</button>
       <button class="secondary-btn" onclick="saveOpeningSlides()">오프닝 텍스트 저장</button>
@@ -928,6 +970,7 @@
       <div id="openingPreviewTitle" class="opening-preview-title">오프닝 슬라이드를 불러오는 중입니다.</div>
       <div id="openingPreviewBody" class="opening-preview-body">오프닝 본문이 여기에 표시됩니다.</div>
       <div id="openingPreviewNote" class="opening-preview-note" style="display:none;"></div>
+    </div>
     </div>
   </div>
 
@@ -1023,6 +1066,7 @@
     const OPENING_TITLE_SOFT_LIMIT = 36;
     const OPENING_BODY_SOFT_LIMIT = 260;
     const OPENING_NOTE_SOFT_LIMIT = 120;
+    const OPENING_PANEL_STORAGE_KEY = 'discussion_control_opening_collapsed';
 
     let adminAccessToken = '';
     let currentDisplayStatus = 'waiting';
@@ -1049,6 +1093,32 @@
     let liveTimerState = 'reset';
     let liveTimerInterval = null;
     let controlChannel = null;
+
+    function getDisplayPageUrl() {
+      return new URL('display.html', window.location.href).href;
+    }
+
+    function openDisplayPage() {
+      const targetUrl = getDisplayPageUrl();
+      const openedWindow = window.open(targetUrl, '_blank', 'noopener');
+
+      if (!openedWindow) {
+        window.location.href = targetUrl;
+      }
+    }
+
+    function setOpeningPanelCollapsed(isCollapsed) {
+      const body = document.getElementById('openingPanelBody');
+      const button = document.getElementById('openingToggleBtn');
+      body.hidden = Boolean(isCollapsed);
+      button.innerText = isCollapsed ? '오프닝 펼치기' : '오프닝 접기';
+      localStorage.setItem(OPENING_PANEL_STORAGE_KEY, isCollapsed ? '1' : '0');
+    }
+
+    function toggleOpeningPanel() {
+      const body = document.getElementById('openingPanelBody');
+      setOpeningPanelCollapsed(!body.hidden);
+    }
 
     function showModal(msg) {
       document.getElementById('modalText').innerText = msg;
@@ -2235,6 +2305,7 @@
           handleOpeningFieldInput('note', event.target.value);
         });
         window.addEventListener('keydown', handleShortcutKeydown);
+        setOpeningPanelCollapsed(localStorage.getItem(OPENING_PANEL_STORAGE_KEY) !== '0');
         syncOpeningSlides(appStore.getDefaultOpeningSlides(), true);
         syncWaitingMessageEditor(DEFAULT_WAITING_MESSAGE, true);
         renderControlStatus();
