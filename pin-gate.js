@@ -1,14 +1,21 @@
 (function () {
-  function getConfig() {
-    return Object.assign(
+  function getConfig(options) {
+    const baseConfig = Object.assign(
       {
         enabled: true,
-        pin: '4242',
+        pin: '',
         storageKey: 'discussion_presentation_admin_unlock_until',
-        rememberMinutes: 480
+        rememberMinutes: 480,
+        pages: {}
       },
       window.PRESENTATION_ADMIN_CONFIG || {}
     );
+    const pageKey = options && options.pageKey;
+    const pageConfig = pageKey && baseConfig.pages
+      ? baseConfig.pages[pageKey] || {}
+      : {};
+
+    return Object.assign({}, baseConfig, pageConfig);
   }
 
   function readUnlockUntil(storageKey) {
@@ -67,7 +74,7 @@
   }
 
   function mount(options) {
-    const config = getConfig();
+    const config = getConfig(options);
     const pageTitle = (options && options.pageTitle) || '관리 화면';
 
     return new Promise(function (resolve) {
@@ -109,8 +116,8 @@
     });
   }
 
-  function reset() {
-    const config = getConfig();
+  function reset(options) {
+    const config = getConfig(options);
     clearUnlock(config.storageKey);
   }
 

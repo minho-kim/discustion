@@ -419,7 +419,7 @@
 
     window.onload = function () {
       window.PresentationPinGate
-        .mount({ pageTitle: '퍼실리테이터 입력 화면' })
+        .mount({ pageKey: 'input', pageTitle: '퍼실리테이터 입력 화면' })
         .then(function () {
           document.getElementById('teamSelect').addEventListener('change', loadTeamPages);
           loadTeamPages();
