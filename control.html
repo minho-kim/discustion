@@ -100,7 +100,7 @@
 
     .panel {
       width: 100%;
-      max-width: 600px;
+      max-width: 760px;
       background: #333;
       padding: 25px;
       border-radius: 12px;
@@ -140,6 +140,23 @@
       border: 2px solid #fff;
     }
 
+    .btn-waiting {
+      width: 100%;
+      margin-top: 12px;
+      padding: 14px;
+      border: 1px solid #50657d;
+      border-radius: 8px;
+      background: #243447;
+      color: #fff;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .btn-waiting:hover {
+      background: #2d4259;
+    }
+
     .page-ctrl {
       display: flex;
       justify-content: space-between;
@@ -156,6 +173,11 @@
       cursor: pointer;
       font-size: 16px;
       border-radius: 6px;
+    }
+
+    .page-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
     }
 
     .page-info {
@@ -201,6 +223,49 @@
 
     .btn-reset {
       background: #7f8c8d;
+    }
+
+    .live-timer-box {
+      margin-top: 16px;
+      padding: 16px 18px;
+      border-radius: 12px;
+      background: #232b35;
+      border: 1px solid #44505e;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .live-timer-copy {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .live-timer-label {
+      color: #9fc8ff;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+    }
+
+    .live-timer-state {
+      color: #d5dde8;
+      font-size: 14px;
+    }
+
+    .live-timer-value {
+      font-size: 38px;
+      font-family: 'Courier New', monospace;
+      font-weight: 700;
+      color: #ff6677;
+      text-shadow: 0 0 16px rgba(255, 102, 119, 0.35);
+    }
+
+    .live-timer-value.warning {
+      color: #ffbf47;
     }
 
     .btn-finale {
@@ -258,17 +323,201 @@
       cursor: pointer;
       font-size: 16px;
     }
+
+    .danger-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .danger-btn {
+      flex: 1;
+      padding: 14px;
+      border: none;
+      border-radius: 6px;
+      font-size: 15px;
+      font-weight: 700;
+      color: white;
+      cursor: pointer;
+    }
+
+    .btn-team-delete {
+      background: #c0392b;
+    }
+
+    .btn-all-delete {
+      background: #8e2a2a;
+    }
+
+    .btn-download {
+      background: #1f6feb;
+    }
+
+    .danger-note {
+      margin: 12px 0 0;
+      color: #ffb3b3;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .preview-panel {
+      background: linear-gradient(180deg, #313843 0%, #2a3039 100%);
+    }
+
+    .preview-shell {
+      border: 1px solid #4c5768;
+      border-radius: 14px;
+      background: #121923;
+      padding: 18px;
+      box-sizing: border-box;
+    }
+
+    .preview-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    .preview-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .preview-badge.waiting {
+      background: rgba(127, 140, 141, 0.2);
+      color: #d8dee9;
+    }
+
+    .preview-badge.show {
+      background: rgba(0, 209, 255, 0.2);
+      color: #8deaff;
+    }
+
+    .preview-badge.nodata {
+      background: rgba(255, 165, 2, 0.18);
+      color: #ffc76b;
+    }
+
+    .preview-badge.finale {
+      background: rgba(255, 0, 204, 0.18);
+      color: #ff9ae9;
+    }
+
+    .preview-meta {
+      color: #9fb0c2;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .preview-mode-summary {
+      text-align: right;
+      color: #d6deea;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .preview-title {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 14px;
+      word-break: keep-all;
+    }
+
+    .preview-content {
+      padding: 16px;
+      border-radius: 12px;
+      background: #1a2330;
+      color: #e7edf5;
+      white-space: pre-wrap;
+      line-height: 1.6;
+      min-height: 110px;
+      box-sizing: border-box;
+    }
+
+    .preview-finale {
+      margin-top: 14px;
+      display: none;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 10px;
+    }
+
+    .preview-finale-chip {
+      background: #212b39;
+      border: 1px solid #3f4d61;
+      border-radius: 10px;
+      padding: 10px 12px;
+      color: #f4d7ff;
+      font-size: 14px;
+      line-height: 1.4;
+    }
+
+    .preview-finale-chip strong {
+      display: block;
+      margin-bottom: 4px;
+      color: #fff;
+      font-size: 12px;
+    }
+
+    @media (max-width: 640px) {
+      .panel {
+        padding: 20px;
+      }
+
+      .grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .page-ctrl,
+      .danger-row {
+        flex-direction: column;
+      }
+
+      .live-timer-box,
+      .preview-top {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .preview-mode-summary {
+        text-align: left;
+      }
+    }
   </style>
 </head>
 <body>
+  <div class="panel preview-panel">
+    <h2>현재 송출 화면</h2>
+    <div class="preview-shell">
+      <div class="preview-top">
+        <div>
+          <div id="previewBadge" class="preview-badge waiting">대기화면</div>
+          <div id="previewMeta" class="preview-meta">현재 메인 화면이 대기 상태입니다.</div>
+        </div>
+        <div id="previewModeSummary" class="preview-mode-summary">화면 모드: 대기</div>
+      </div>
+      <div id="previewTitle" class="preview-title">발표를 대기 중입니다.</div>
+      <div id="previewContent" class="preview-content">조를 선택하면 여기서 현재 디스플레이에 나가는 주제와 내용을 함께 확인할 수 있습니다.</div>
+      <div id="previewFinale" class="preview-finale"></div>
+    </div>
+  </div>
+
   <div class="panel">
     <h2>1. 발표 조 선택</h2>
     <div class="grid" id="teamGrid"></div>
     <div class="page-ctrl">
-      <button class="page-btn" onclick="movePage(-1)">◀ 이전 장</button>
+      <button id="prevPageBtn" class="page-btn" onclick="movePage(-1)">◀ 이전 장</button>
       <div class="page-info"><span id="curP">1</span> / <span id="totalP">1</span></div>
-      <button class="page-btn" onclick="movePage(1)">다음 장 ▶</button>
+      <button id="nextPageBtn" class="page-btn" onclick="movePage(1)">다음 장 ▶</button>
     </div>
+    <button class="btn-waiting" onclick="setWaitingMode()">대기화면으로 전환</button>
   </div>
 
   <div class="panel">
@@ -281,11 +530,32 @@
       <button class="t-btn btn-start" onclick="timerAction('playing')">타이머 시작</button>
       <button class="t-btn btn-pause" onclick="timerAction('paused')">일시 정지</button>
     </div>
+    <div class="live-timer-box">
+      <div class="live-timer-copy">
+        <div class="live-timer-label">운영진 기준 현재 남은 시간</div>
+        <div id="liveTimerState" class="live-timer-state">초기화됨</div>
+      </div>
+      <div id="liveTimerValue" class="live-timer-value">05:00</div>
+    </div>
   </div>
 
   <div class="panel">
     <h2>3. 행사 종료 연출 (결과 모아보기)</h2>
     <button class="btn-finale" onclick="triggerFinale()">✨ 피날레 재생하기 ✨</button>
+  </div>
+
+  <div class="panel">
+    <h2>4. 데이터 초기화</h2>
+    <div class="danger-row">
+      <button class="danger-btn btn-team-delete" onclick="deleteSelectedTeamData()">&lt;조별삭제&gt;</button>
+      <button class="danger-btn btn-all-delete" onclick="deleteAllData()">&lt;전체삭제&gt;</button>
+      <button class="danger-btn btn-download" onclick="downloadAllData()">데이터 내려받기</button>
+    </div>
+    <p class="danger-note">
+      `조별삭제`는 현재 선택된 조 데이터만 지웁니다.<br>
+      `전체삭제`는 모든 조 데이터를 지우고 화면 상태를 대기로 초기화합니다.<br>
+      삭제/초기화는 두 번 확인하고, 내려받기는 현재 전체 데이터를 JSON 백업 파일로 저장합니다.
+    </p>
   </div>
 
   <div id="customModal" class="modal-overlay">
@@ -312,6 +582,9 @@
       remain: 300,
       lastAction: new Date().toISOString()
     };
+    let liveTimerValue = 300;
+    let liveTimerState = 'reset';
+    let liveTimerInterval = null;
     let controlChannel = null;
 
     function showModal(msg) {
@@ -339,8 +612,11 @@
     }
 
     function renderControlStatus() {
-      document.getElementById('curP').innerText = currentPageNo;
-      document.getElementById('totalP').innerText = totalPageCount;
+      const hasTeam = Boolean(currentTeamId);
+      document.getElementById('curP').innerText = hasTeam ? currentPageNo : '-';
+      document.getElementById('totalP').innerText = hasTeam ? totalPageCount : '-';
+      document.getElementById('prevPageBtn').disabled = !hasTeam;
+      document.getElementById('nextPageBtn').disabled = !hasTeam;
       renderTeamButtons();
     }
 
@@ -361,6 +637,205 @@
       return Number.isFinite(mins) && mins >= 0 ? mins : 5;
     }
 
+    function askConfirmation(message) {
+      return window.confirm(message);
+    }
+
+    function askDangerConfirmation(firstMessage, secondMessage) {
+      if (!askConfirmation(firstMessage)) {
+        return false;
+      }
+
+      return askConfirmation(secondMessage);
+    }
+
+    function formatTime(seconds) {
+      const safeSeconds = Math.max(0, Number(seconds) || 0);
+      const mins = Math.floor(safeSeconds / 60);
+      const secs = safeSeconds % 60;
+      return (mins < 10 ? '0' + mins : mins) + ':' + (secs < 10 ? '0' + secs : secs);
+    }
+
+    function getTimerStateText(state, seconds) {
+      if (state === 'playing') {
+        return seconds > 0 ? '진행 중' : '시간 종료';
+      }
+
+      if (state === 'paused') {
+        return '일시 정지';
+      }
+
+      return '초기화됨';
+    }
+
+    function updateLiveTimerUi() {
+      const timerValueNode = document.getElementById('liveTimerValue');
+      timerValueNode.innerText = formatTime(liveTimerValue);
+
+      if (liveTimerValue < 60 && liveTimerValue > 0) {
+        timerValueNode.classList.add('warning');
+      } else {
+        timerValueNode.classList.remove('warning');
+      }
+
+      document.getElementById('liveTimerState').innerText = getTimerStateText(liveTimerState, liveTimerValue);
+    }
+
+    function syncLiveTimer(timerData) {
+      clearInterval(liveTimerInterval);
+      liveTimerInterval = null;
+
+      liveTimerState = timerData && timerData.state ? timerData.state : 'reset';
+      liveTimerValue = appStore.computeRemainingSeconds(timerData);
+      updateLiveTimerUi();
+
+      if (liveTimerState === 'playing' && liveTimerValue > 0) {
+        liveTimerInterval = setInterval(function () {
+          liveTimerValue = Math.max(0, liveTimerValue - 1);
+          updateLiveTimerUi();
+
+          if (liveTimerValue <= 0) {
+            clearInterval(liveTimerInterval);
+            liveTimerInterval = null;
+          }
+        }, 1000);
+      }
+    }
+
+    function renderFinalePreview(titles) {
+      const container = document.getElementById('previewFinale');
+      container.innerHTML = '';
+
+      if (!Array.isArray(titles) || !titles.length) {
+        container.style.display = 'none';
+        return;
+      }
+
+      for (let i = 0; i < titles.length; i++) {
+        const item = titles[i] || {};
+        const chip = document.createElement('div');
+        chip.className = 'preview-finale-chip';
+
+        const team = document.createElement('strong');
+        team.innerText = String(item.team || '?') + '조';
+        chip.appendChild(team);
+
+        const title = document.createElement('span');
+        title.innerText = item.title || '제목 없음';
+        chip.appendChild(title);
+
+        container.appendChild(chip);
+      }
+
+      container.style.display = 'grid';
+    }
+
+    function renderPreview(payload) {
+      const badge = document.getElementById('previewBadge');
+      const meta = document.getElementById('previewMeta');
+      const summary = document.getElementById('previewModeSummary');
+      const title = document.getElementById('previewTitle');
+      const content = document.getElementById('previewContent');
+
+      badge.className = 'preview-badge ' + payload.status;
+
+      if (payload.status === 'show') {
+        badge.innerText = '송출 중';
+        meta.innerText = payload.teamId + '조 · ' + payload.currentPage + '/' + payload.totalPages + ' 페이지';
+        summary.innerText = '화면 모드: 발표';
+        title.innerText = payload.title;
+        content.innerText = payload.content;
+        renderFinalePreview([]);
+        return;
+      }
+
+      if (payload.status === 'nodata') {
+        badge.innerText = '데이터 없음';
+        meta.innerText = payload.teamId + '조가 선택됐지만 저장된 페이지가 없습니다.';
+        summary.innerText = '화면 모드: 데이터 없음';
+        title.innerText = payload.teamId + '조 데이터가 없습니다.';
+        content.innerText = '입력 화면에서 이 조의 발표 페이지를 저장하면 디스플레이가 바로 갱신됩니다.';
+        renderFinalePreview([]);
+        return;
+      }
+
+      if (payload.status === 'finale') {
+        badge.innerText = '피날레';
+        meta.innerText = '결과 모아보기 화면이 재생 중입니다.';
+        summary.innerText = '화면 모드: 피날레';
+        title.innerText = '피날레 연출 재생 중';
+        content.innerText = payload.titles.length
+          ? '현재는 각 조의 주제를 모아 보여주는 피날레 화면이 송출되고 있습니다.'
+          : '피날레용 제목 데이터가 없습니다.';
+        renderFinalePreview(payload.titles);
+        return;
+      }
+
+      badge.innerText = '대기화면';
+      meta.innerText = '현재 메인 화면이 대기 상태입니다.';
+      summary.innerText = '화면 모드: 대기';
+      title.innerText = '발표를 대기 중입니다.';
+      content.innerText = '조를 선택하면 여기서 현재 디스플레이에 나가는 주제와 내용을 함께 확인할 수 있습니다.';
+      renderFinalePreview([]);
+    }
+
+    function buildBackupFilename() {
+      const now = new Date();
+      const pad = function (value) {
+        return String(value).padStart(2, '0');
+      };
+
+      return 'discussion_backup_' +
+        now.getFullYear() +
+        pad(now.getMonth() + 1) +
+        pad(now.getDate()) + '_' +
+        pad(now.getHours()) +
+        pad(now.getMinutes()) +
+        pad(now.getSeconds()) +
+        '.json';
+    }
+
+    function downloadJsonFile(filename, data) {
+      const blob = new Blob(
+        [JSON.stringify(data, null, 2)],
+        { type: 'application/json;charset=utf-8' }
+      );
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    async function collectBackupData() {
+      const teamIds = [];
+
+      for (let i = 1; i <= 10; i++) {
+        teamIds.push(i);
+      }
+
+      const results = await Promise.all(teamIds.map(async function (teamId) {
+        const pages = await appStore.adminFetchPages(teamId, adminAccessToken, { force: true });
+        return {
+          teamId: teamId,
+          pageCount: pages.length,
+          pages: pages
+        };
+      }));
+
+      const publicDisplay = await appStore.fetchPublicDisplay();
+
+      return {
+        exportedAt: new Date().toISOString(),
+        exportedBy: 'control',
+        display: publicDisplay,
+        teams: results
+      };
+    }
+
     function handleAdminError(error, fallbackMessage) {
       if (error && error.status === 401) {
         window.PresentationPinGate.reset({ pageKey: 'control' });
@@ -374,7 +849,8 @@
 
     function applyDisplayToUi(displayRow) {
       const display = appStore.hydratePublicDisplay(displayRow);
-      timerSnapshot = appStore.buildTimerData(display);
+      const previewPayload = appStore.buildDisplayPayloadFromPublicDisplay(display);
+      timerSnapshot = previewPayload.timer;
 
       if (display.status === 'show' || display.status === 'nodata') {
         currentTeamId = display.team_id;
@@ -394,6 +870,8 @@
       }
 
       renderControlStatus();
+      syncLiveTimer(previewPayload.timer);
+      renderPreview(previewPayload);
     }
 
     async function refreshStatus(displayOverride) {
@@ -449,6 +927,26 @@
       }
     }
 
+    async function setWaitingMode() {
+      try {
+        const result = await appStore.adminSetState({
+          mode: 'waiting',
+          current_team_id: null,
+          current_page_no: 1
+        }, adminAccessToken);
+
+        if (result && result.publicDisplay) {
+          applyDisplayToUi(result.publicDisplay);
+        } else {
+          await refreshStatus();
+        }
+
+        showModal('대기화면으로 전환되었습니다.');
+      } catch (error) {
+        handleAdminError(error, '대기화면 전환 실패');
+      }
+    }
+
     async function movePage(delta) {
       if (!currentTeamId) {
         return;
@@ -498,6 +996,61 @@
       }
     }
 
+    async function deleteSelectedTeamData() {
+      if (!currentTeamId) {
+        showModal('먼저 삭제할 조를 선택해 주세요.');
+        return;
+      }
+
+      if (!askDangerConfirmation(
+        currentTeamId + '조 데이터를 삭제할까요?',
+        currentTeamId + '조 데이터를 정말 삭제합니다. 되돌릴 수 없습니다. 계속할까요?'
+      )) {
+        return;
+      }
+
+      try {
+        await appStore.adminDeleteTeamPages(currentTeamId, adminAccessToken);
+        await refreshStatus();
+        showModal(currentTeamId + '조 데이터가 삭제되었습니다.');
+      } catch (error) {
+        handleAdminError(error, '조별삭제 실패');
+      }
+    }
+
+    async function deleteAllData() {
+      if (!askDangerConfirmation(
+        '모든 조 데이터를 삭제하고 화면 상태도 초기화할까요?',
+        '전체 데이터 삭제와 대기화면 초기화를 지금 실행합니다. 되돌릴 수 없습니다. 계속할까요?'
+      )) {
+        return;
+      }
+
+      try {
+        const result = await appStore.adminDeleteAllPages(adminAccessToken);
+
+        if (result && result.publicDisplay) {
+          applyDisplayToUi(result.publicDisplay);
+        } else {
+          await refreshStatus();
+        }
+
+        showModal('전체 데이터가 삭제되고 화면 상태가 초기화되었습니다.');
+      } catch (error) {
+        handleAdminError(error, '전체삭제 실패');
+      }
+    }
+
+    async function downloadAllData() {
+      try {
+        const backup = await collectBackupData();
+        downloadJsonFile(buildBackupFilename(), backup);
+        showModal('현재 데이터 백업 파일을 내려받았습니다.');
+      } catch (error) {
+        handleAdminError(error, '데이터 내려받기 실패');
+      }
+    }
+
     async function handlePresentationChange(payload) {
       if (payload.table === appStore.config.displayTable && payload.new) {
         applyDisplayToUi(payload.new);
@@ -508,6 +1061,7 @@
     }
 
     window.addEventListener('beforeunload', function () {
+      clearInterval(liveTimerInterval);
       appStore.unsubscribe(controlChannel);
     });
 

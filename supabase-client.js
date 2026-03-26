@@ -212,6 +212,31 @@
     return payload;
   }
 
+  async function adminDeleteTeamPages(teamId, accessToken) {
+    const payload = await callAdminApi('/pages?teamId=' + encodeURIComponent(teamId), {
+      method: 'DELETE',
+      accessToken: accessToken
+    });
+
+    invalidateTeamPages(teamId);
+    return payload;
+  }
+
+  async function adminDeleteAllPages(accessToken) {
+    const payload = await callAdminApi('/pages', {
+      method: 'DELETE',
+      accessToken: accessToken
+    });
+
+    invalidateAllPages();
+
+    if (payload && payload.publicDisplay) {
+      cachePublicDisplay(payload.publicDisplay);
+    }
+
+    return payload;
+  }
+
   async function adminSetState(partialState, accessToken) {
     const payload = await callAdminApi('/state', {
       method: 'POST',
@@ -262,6 +287,8 @@
     computeRemainingSeconds: computeRemainingSeconds,
     adminFetchPages: adminFetchPages,
     adminSavePages: adminSavePages,
+    adminDeleteTeamPages: adminDeleteTeamPages,
+    adminDeleteAllPages: adminDeleteAllPages,
     adminSetState: adminSetState,
     invalidateTeamPages: invalidateTeamPages,
     invalidateAllPages: invalidateAllPages,

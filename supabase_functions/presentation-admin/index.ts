@@ -6,8 +6,15 @@ const encoder = new TextEncoder()
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
   'Content-Type': 'application/json',
+}
+
+const INLINE_SECRETS: Record<string, string> = {
+  PRESENTATION_INPUT_PIN: '114341',
+  PRESENTATION_CONTROL_PIN: '536085',
+  PRESENTATION_ADMIN_TOKEN_SECRET: 'n3-4Fv7F02BTFUOGtopYzffoGNpMQMDaa16zsdcyZ5N5TTsLnptlqxhGHcZrYQVq',
+  PRESENTATION_ADMIN_SESSION_MINUTES: '480',
 }
 
 const supabaseAdmin = createClient(
@@ -24,7 +31,7 @@ const TABLES = {
 const SESSION_MINUTES = Math.max(
   10,
   Math.min(
-    Number(Deno.env.get('PRESENTATION_ADMIN_SESSION_MINUTES') || 480) || 480,
+    Number((Deno.env.get('PRESENTATION_ADMIN_SESSION_MINUTES') || INLINE_SECRETS.PRESENTATION_ADMIN_SESSION_MINUTES) || 480) || 480,
     24 * 60
   )
 )
@@ -44,7 +51,7 @@ function getRoutePath(req: Request) {
 }
 
 function getSecret(name: string) {
-  const value = Deno.env.get(name)
+  const value = Deno.env.get(name) || INLINE_SECRETS[name]
 
   if (!value) {
     throw new Error(`Missing secret: ${name}`)
@@ -231,6 +238,32 @@ async function fetchPublicDisplayRow() {
   return data
 }
 
+async function resetStateToWaiting() {
+  const nextState = {
+    id: 1,
+    mode: 'waiting',
+    current_team_id: null,
+    current_page_no: 1,
+    timer_state: 'reset',
+    timer_remain_secs: 300,
+    timer_last_action_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  }
+
+  const { data, error } = await supabaseAdmin
+    .from(TABLES.state)
+    .update(nextState)
+    .eq('id', 1)
+    .select('*')
+    .maybeSingle()
+
+  if (error) {
+    throw error
+  }
+
+  return data || nextState
+}
+
 function sanitizeStatePatch(input: Record<string, unknown>) {
   const patch: Record<string, unknown> = {}
 
@@ -363,6 +396,39 @@ Deno.serve(async (req) => {
       }
 
       return jsonResponse(200, { ok: true })
+    }
+
+    if (req.method === 'DELETE' && routePath === '/pages') {
+      await verifyToken(req, ['control'])
+      const teamIdParam = new URL(req.url).searchParams.get('teamId')
+      const deleteQuery = supabaseAdmin.from(TABLES.pages).delete()
+
+      if (teamIdParam) {
+        const teamId = validateTeamId(teamIdParam)
+        const { error } = await deleteQuery.eq('team_id', teamId)
+
+        if (error) {
+          throw error
+        }
+
+        return jsonResponse(200, { ok: true, mode: 'team', teamId })
+      }
+
+      const { error } = await deleteQuery.neq('id', 0)
+
+      if (error) {
+        throw error
+      }
+
+      const state = await resetStateToWaiting()
+      const publicDisplay = await fetchPublicDisplayRow()
+
+      return jsonResponse(200, {
+        ok: true,
+        mode: 'all',
+        state,
+        publicDisplay,
+      })
     }
 
     if (req.method === 'GET' && routePath === '/state') {
