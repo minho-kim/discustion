@@ -17,6 +17,69 @@ const INLINE_SECRETS: Record<string, string> = {
   PRESENTATION_ADMIN_SESSION_MINUTES: '480',
 }
 
+const DEFAULT_OPENING_SLIDES = [
+  {
+    title: '용인시민 100인 연석회의',
+    body: '미래의 풍요와 오늘의 삶을 함께 보듬는 용인을 위해\n시민의 지혜를 모으는 자리에 오신 것을 환영합니다.',
+    note: '',
+  },
+  {
+    title: '개회 선언',
+    body: '지금부터 \'용인시민 100인 연석회의 공론장\'을 시작하겠습니다.',
+    note: '',
+  },
+  {
+    title: '환영 및 참가자 안내',
+    body: '바쁘신 와중에도 함께해주신 시민 여러분, 진심으로 감사합니다.\n오늘 이 자리는 다양한 세대와 분야의 시민 100인이 모여\n용인의 현재와 미래를 함께 이야기하는 자리입니다.',
+    note: '',
+  },
+  {
+    title: '공론장 목적',
+    body: '전문가가 아닌 시민이 직접 정책을 만드는 자리입니다.\n정답을 찾는 자리가 아니라, 서로의 경험과 생각을 모아\n실제 지방선거 후보자에게 제안할 \'시민 정책\'을 도출합니다.',
+    note: '',
+  },
+  {
+    title: '진행 방식 안내',
+    body: '총 10개의 주제 테이블이 운영됩니다.\n자신이 관심 있고 직접 이야기 나누고 싶은 주제 테이블에서\n테이블별 퍼실리테이터의 안내에 따라 논의를 진행합니다.',
+    note: '지역 불균형 / 돌봄 시스템 / 기후·에너지 / 맞춤형 일자리 / 주택·교통 / 시민참여 / 지역경제 등',
+  },
+  {
+    title: '우리의 3가지 약속',
+    body: '첫째. 서로의 의견을 존중합니다.\n둘째. 발언 기회를 공평하게 나눕니다.\n셋째. 비판보다는 제안을 중심으로 이야기합니다.',
+    note: '',
+  },
+  {
+    title: '테이블 논의 시작',
+    body: '퍼실리테이터와 함께 구체적인 논의를 시작합니다.\n\n[입열기]\n나는 어떻게 이 자리에 참여하게 되었나요?\n생활, 일, 지역에서의 경험을 편하게 나누어 주세요.',
+    note: '',
+  },
+  {
+    title: '문제 드러내기 및 쟁점 정리',
+    body: '개인의 경험과 불편함을 우리 모두의 문제로 확장합니다.\n유사한 의견을 묶고 점 스티커 투표를 통해\n가장 중요하고 시급하며 실현 가능한 우선순위 쟁점을 선택합니다.',
+    note: '',
+  },
+  {
+    title: '정책 아이디어 도출 및 정교화',
+    body: '선택된 문제를 해결하기 위한 아이디어를 쏟아냅니다.\n평가하지 않기, 많이 내기, 자유롭게 말하기.\n도출된 아이디어를 현실적이고 설득력 있는 시민 정책으로 다듬습니다.',
+    note: '',
+  },
+  {
+    title: '전체 공유 및 발표',
+    body: '각 테이블에서 논의된 핵심 쟁점과 정책 제안을 전체와 함께 나눕니다.\n여러분의 이야기가 어떻게 모였는지 확인해 보겠습니다.',
+    note: '',
+  },
+  {
+    title: '전체 기념 사진 촬영',
+    body: '모든 발표가 마무리되었습니다.\n오늘의 소중한 자리를 기억하며, 참석해주신 100인의 시민 여러분과\n함께 기념 사진을 촬영하겠습니다.',
+    note: '',
+  },
+  {
+    title: '폐회 및 마무리',
+    body: '긴 시간 함께해주신 시민 여러분, 진심으로 감사합니다.\n오늘 도출된 제안은 지방선거 후보자에게 소중히 전달하겠습니다.\n이상으로 용인시민 100인 연석회의를 모두 마치겠습니다.',
+    note: '',
+  },
+]
+
 const supabaseAdmin = createClient(
   Deno.env.get('SUPABASE_URL') ?? '',
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -200,6 +263,52 @@ function validatePages(pages: unknown) {
   })
 }
 
+function cloneOpeningSlides(slides: Array<Record<string, unknown>>) {
+  return slides.map((slide) => ({
+    title: typeof slide.title === 'string' ? slide.title : '',
+    body: typeof slide.body === 'string' ? slide.body : '',
+    note: typeof slide.note === 'string' ? slide.note : '',
+  }))
+}
+
+function getDefaultOpeningSlides() {
+  return cloneOpeningSlides(DEFAULT_OPENING_SLIDES)
+}
+
+function validateOpeningSlides(openingSlides: unknown) {
+  if (!Array.isArray(openingSlides) || !openingSlides.length) {
+    throw new Error('오프닝 슬라이드는 최소 1장 이상이어야 합니다.')
+  }
+
+  if (openingSlides.length > 20) {
+    throw new Error('오프닝 슬라이드는 최대 20장까지 저장할 수 있습니다.')
+  }
+
+  return openingSlides.map((slide, index) => {
+    const title = typeof slide?.title === 'string' ? slide.title.trim() : ''
+    const body = typeof slide?.body === 'string' ? slide.body.trim() : ''
+    const note = typeof slide?.note === 'string' ? slide.note.trim() : ''
+
+    if (!title && !body) {
+      throw new Error(`${index + 1}번째 오프닝 슬라이드에 제목 또는 본문이 필요합니다.`)
+    }
+
+    if (title.length > 120) {
+      throw new Error(`${index + 1}번째 오프닝 슬라이드 제목은 120자 이하로 입력해 주세요.`)
+    }
+
+    if (body.length > 1200) {
+      throw new Error(`${index + 1}번째 오프닝 슬라이드 본문은 1200자 이하로 입력해 주세요.`)
+    }
+
+    if (note.length > 240) {
+      throw new Error(`${index + 1}번째 오프닝 슬라이드 보조 문구는 240자 이하로 입력해 주세요.`)
+    }
+
+    return { title, body, note }
+  })
+}
+
 async function fetchStateRow() {
   const { data, error } = await supabaseAdmin
     .from(TABLES.state)
@@ -217,6 +326,7 @@ async function fetchStateRow() {
       mode: 'waiting',
       current_team_id: null,
       current_page_no: 1,
+      opening_slides: getDefaultOpeningSlides(),
       waiting_message: '발표를 대기 중입니다.',
       timer_state: 'reset',
       timer_remain_secs: 300,
@@ -240,11 +350,15 @@ async function fetchPublicDisplayRow() {
 }
 
 async function resetStateToWaiting() {
+  const currentState = await fetchStateRow()
   const nextState = {
     id: 1,
     mode: 'waiting',
     current_team_id: null,
     current_page_no: 1,
+    opening_slides: Array.isArray(currentState.opening_slides) && currentState.opening_slides.length
+      ? currentState.opening_slides
+      : getDefaultOpeningSlides(),
     waiting_message: '발표를 대기 중입니다.',
     timer_state: 'reset',
     timer_remain_secs: 300,
@@ -270,7 +384,7 @@ function sanitizeStatePatch(input: Record<string, unknown>) {
   const patch: Record<string, unknown> = {}
 
   if (input.mode !== undefined) {
-    if (!['waiting', 'show', 'finale'].includes(String(input.mode))) {
+    if (!['waiting', 'opening', 'show', 'finale'].includes(String(input.mode))) {
       throw new Error('mode 값이 올바르지 않습니다.')
     }
 
@@ -291,6 +405,10 @@ function sanitizeStatePatch(input: Record<string, unknown>) {
     }
 
     patch.current_page_no = pageNo
+  }
+
+  if (input.opening_slides !== undefined) {
+    patch.opening_slides = validateOpeningSlides(input.opening_slides)
   }
 
   if (input.waiting_message !== undefined) {

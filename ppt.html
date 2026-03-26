@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>용인시민 100인 연석회의 - 오프닝</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;500;700;900&display=swap" rel="stylesheet">
+  <style>
+    /* 1. 글로벌 및 방어적 레이아웃 설정 */
+    body, html {
+      margin: 0;
+      padding: 0;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden; /* 스크롤바 원천 차단 */
+      font-family: 'Noto Sans KR', sans-serif;
+      background-color: #eaf3ed; /* 현수막 기본 톤 */
+      transition: opacity 0.5s ease; /* display.html 전환용 페이드 효과 */
+    }
+
+    body.fade-out-active {
+      opacity: 0;
+      background-color: #000; /* 다크모드로 자연스럽게 넘어가기 위함 */
+    }
+
+    /* 2. 기차 파노라마 배경 레이어 */
+    #bg-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 1;
+      /* 여기에 이전에 만든 현수막 이미지(가로로 긴 비율) 경로를 넣으세요 */
+      background-image: url('./banner.png'); 
+      background-size: auto 100vh; /* 세로 꽉 차게, 가로는 비율 유지 */
+      background-position-x: 0%; /* JS에서 이 값을 변경해 파노라마 효과 구현 */
+      background-position-y: bottom;
+      background-repeat: no-repeat;
+      transition: background-position-x 0.8s ease-in-out;
+    }
+
+    /* 3. 슬라이드 컨테이너 (CSS 기반 렌더링 엔진 제어) */
+    #slider-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 10;
+      display: flex;
+      overflow-x: hidden; /* JS 트리거로만 움직이게 제어 */
+    }
+
+    /* 4. 개별 슬라이드 구조 */
+    .slide {
+      flex: 0 0 100vw; /* 화면 꽉 채우기 */
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 2rem;
+      box-sizing: border-box;
+    }
+
+    /* 5. Glassmorphism(유리 질감) 콘텐츠 박스 */
+    .content-box {
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      padding: 3.5vw 5vw;
+      border-radius: 24px;
+      box-shadow: 0 15px 35px rgba(0,0,0,0.08);
+      max-width: 1000px;
+      width: 90%;
+      text-align: center;
+      border-top: 6px solid #2ea65a; /* 용인 테마 녹색 포인트 */
+    }
+
+    /* 6. 타이포그래피 */
+    .content-box h1 {
+      font-size: 3.5vw;
+      font-weight: 900;
+      color: #222;
+      margin-top: 0;
+      margin-bottom: 1vw;
+      word-break: keep-all;
+    }
+
+    .content-box h2 {
+      font-size: 2.8vw;
+      font-weight: 700;
+      color: #333;
+      margin-top: 0;
+      margin-bottom: 1.5vw;
+      border-bottom: 2px solid #ddd;
+      padding-bottom: 1vw;
+      display: inline-block;
+    }
+
+    .content-box p {
+      font-size: 1.8vw;
+      font-weight: 500;
+      color: #444;
+      line-height: 1.6;
+      margin: 0;
+      word-break: keep-all;
+    }
+
+    .content-box ul {
+      text-align: left;
+      font-size: 1.8vw;
+      font-weight: 500;
+      color: #444;
+      line-height: 1.8;
+      display: inline-block;
+      margin: 1vw auto 0;
+    }
+
+    /* 7. 트랜지션 버튼 (10번 슬라이드용) */
+    .action-btn {
+      margin-top: 2.5vw;
+      padding: 1.2vw 3vw;
+      font-size: 1.8vw;
+      font-weight: 700;
+      color: #fff;
+      background: #0056b3;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      box-shadow: 0 8px 20px rgba(0, 86, 179, 0.3);
+      transition: all 0.2s ease;
+    }
+
+    .action-btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 25px rgba(0, 86, 179, 0.4);
+      background: #004494;
+    }
+
+    /* 8. 페이지 인디케이터 */
+    #page-indicator {
+      position: absolute;
+      bottom: 2vw;
+      right: 3vw;
+      z-index: 20;
+      font-size: 1.2vw;
+      font-weight: 700;
+      color: #555;
+      background: rgba(255,255,255,0.7);
+      padding: 0.5vw 1vw;
+      border-radius: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="bg-layer"></div>
+
+  <div id="page-indicator">1 / 12</div>
+
+  <div id="slider-container">
+    <section class="slide">
+      <div class="content-box">
+        <h1>용인시민 100인 연석회의</h1>
+        <p>미래의 풍요와 오늘의 삶을 함께 보듬는 용인을 위해<br>시민의 지혜를 모으는 자리에 오신 것을 환영합니다.</p>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="content-box">
+        <h2>개회 선언</h2>
+        <p>"지금부터 <strong>'용인시민 100인 연석회의 공론장'</strong>을 시작하겠습니다."</p>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="content-box">
+        <h2>환영 및 참가자 안내</h2>
+        <p>바쁘신 와중에도 함께해주신 시민 여러분, 진심으로 감사합니다.<br>오늘 이 자리는 다양한 세대와 분야의 시민 100인이 모여<br>용인의 현재와 미래를 함께 이야기하는 자리입니다.</p>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="content-box">
+        <h2>공론장 목적</h2>
+        <p>전문가가 아닌 시민이 직접 정책을 만드는 자리입니다.<br>정답을 찾는 자리가 아니라, 서로의 경험과 생각을 모아<br>실제 지방선거 후보자에게 제안할 <strong>'시민 정책'</strong>을 도출합니다.</p>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="content-box">
+        <h2>진행 방식 안내</h2>
+        <p>총 10개의 주제 테이블이 운영됩니다.<br>자신이 관심 있고 직접 이야기 나누고 싶은 주제 테이블에서<br>테이블별 퍼실리테이터의 안내에 따라 논의를 진행합니다.</p>
+        <p style="font-size: 1.3vw; margin-top: 1vw; color: #666;">* 지역 불균형 / 돌봄 시스템 / 기후·에너지 / 맞춤형 일자리 / 주택·교통 / 시민참여 / 지역경제 등</p>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="content-box">
+        <h2>우리의 3가지 약속</h2>
+        <ul>
+          <li><strong>첫째.</strong> 서로의 의견을 존중합니다.</li>
+          <li><strong>둘째.</strong> 발언 기회를 공평하게 나눕니다.</li>
+          <li><strong>셋째.</strong> 비판보다는 제안을 중심으로 이야기합니다.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="content-box">
+        <h2>테이블 논의 시작</h2>
+        <p>퍼실리테이터와 함께 구체적인 논의를 시작합니다.<br><br><strong>[입열기]</strong><br>"나는 어떻게 이 자리에 참여하게 되었나요?"<br>생활, 일, 지역에서의 경험을 편하게 나누어 주세요.</p>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="content-box">
+        <h2>문제 드러내기 및 쟁점 정리</h2>
+        <p>개인의 경험과 불편함을 '우리 모두의 문제'로 확장합니다.<br>유사한 의견을 묶고(유목화), 점 스티커 투표를 통해<br>가장 <strong>중요하고 시급하며 실현 가능한</strong> 우선순위 쟁점을 선택합니다.</p>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="content-box">
+        <h2>정책 아이디어 도출 및 정교화</h2>
+        <p>선택된 문제를 해결하기 위한 아이디어를 쏟아냅니다.<br><strong>"평가하지 않기! 많이 내기! 자유롭게 말하기!"</strong><br>도출된 아이디어를 현실적이고 설득력 있는 '정책'으로 다듬습니다.</p>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="content-box">
+        <h2>전체 공유 및 발표</h2>
+        <p>각 테이블에서 논의된 핵심 쟁점과 정책 제안을 전체와 함께 나눕니다.<br>여러분의 이야기가 어떻게 모였는지 확인해 보겠습니다.</p>
+        <p style="font-size: 1.3vw; margin-top: 1.4vw; color: #666;">조별 결과 송출 전환은 운영진 화면에서 진행합니다.</p>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="content-box">
+        <h2>전체 기념 사진 촬영</h2>
+        <p>모든 발표가 마무리되었습니다.<br>오늘의 소중한 자리를 기억하며, 참석해주신 100인의 시민 여러분과<br>함께 기념 사진을 촬영하겠습니다.</p>
+      </div>
+    </section>
+
+    <section class="slide">
+      <div class="content-box">
+        <h2>폐회 및 마무리</h2>
+        <p>긴 시간 함께해주신 시민 여러분, 진심으로 감사합니다.<br>오늘 도출된 제안은 지방선거 후보자에게 소중히 전달하겠습니다.<br>이상으로 '용인시민 100인 연석회의'를 모두 마치겠습니다.</p>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const sliderContainer = document.getElementById('slider-container');
+      const bgLayer = document.getElementById('bg-layer');
+      const indicator = document.getElementById('page-indicator');
+      const slides = document.querySelectorAll('.slide');
+      const totalSlides = slides.length;
+      let currentIndex = 0;
+
+      // 1. 슬라이드 이동 및 배경 파노라마 동기화 함수
+      function goToSlide(index) {
+        if (index < 0) index = 0;
+        if (index >= totalSlides) index = totalSlides - 1;
+        
+        currentIndex = index;
+        
+        // 화면 인디케이터 업데이트
+        indicator.innerText = (currentIndex + 1) + ' / ' + totalSlides;
+
+        // 배경 레이어 파노라마 연산: (현재인덱스 / 전체-1) * 100%
+        // 첫 슬라이드 0%, 마지막 슬라이드 100% 위치로 부드럽게 이동함
+        const progressRatio = currentIndex / (totalSlides - 1);
+        bgLayer.style.backgroundPositionX = (progressRatio * 100) + '%';
+        
+        // 화면 겹침 방지: 절대 좌표가 아닌 컨테이너 내부 스크롤 강제 이동 (부드럽게)
+        sliderContainer.scrollTo({
+          left: slides[currentIndex].offsetLeft,
+          behavior: 'smooth'
+        });
+      }
+      // End of goToSlide
+
+      // 2. 키보드 이벤트 리스너 (방어적 네비게이션)
+      window.addEventListener('keydown', function(e) {
+        // 스페이스바, 우측 화살표, 페이지 다운 -> 다음 장
+        if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+          e.preventDefault();
+          goToSlide(currentIndex + 1);
+        } 
+        // 좌측 화살표, 페이지 업 -> 이전 장
+        else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+          e.preventDefault();
+          goToSlide(currentIndex - 1);
+        }
+      });
+      // End of anonymous function
+
+      // 초기화: 브라우저 리프레시 시 스크롤 및 배경 위치 0으로 리셋
+      goToSlide(0);
+    });
+    // End of anonymous function
+  </script>
+</body>
+</html>

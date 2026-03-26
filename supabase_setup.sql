@@ -14,9 +14,10 @@ create table if not exists public.discussion_presentation_pages (
 
 create table if not exists public.discussion_presentation_state (
   id integer primary key check (id = 1),
-  mode text not null default 'waiting' check (mode in ('waiting', 'show', 'finale')),
+  mode text not null default 'waiting' check (mode in ('waiting', 'opening', 'show', 'finale')),
   current_team_id integer null check (current_team_id between 1 and 10),
   current_page_no integer not null default 1 check (current_page_no >= 1),
+  opening_slides jsonb not null default '[]'::jsonb,
   waiting_message text not null default '발표를 대기 중입니다.',
   timer_state text not null default 'reset' check (timer_state in ('reset', 'playing', 'paused')),
   timer_remain_secs integer not null default 300 check (timer_remain_secs >= 0),
@@ -26,12 +27,13 @@ create table if not exists public.discussion_presentation_state (
 
 create table if not exists public.discussion_public_display (
   id integer primary key check (id = 1),
-  status text not null default 'waiting' check (status in ('waiting', 'show', 'nodata', 'finale')),
+  status text not null default 'waiting' check (status in ('waiting', 'opening', 'show', 'nodata', 'finale')),
   team_id integer null check (team_id between 1 and 10),
   current_page integer not null default 1 check (current_page >= 1),
   total_pages integer not null default 1 check (total_pages >= 1),
   title text not null default '',
   content text not null default '',
+  opening_slides jsonb not null default '[]'::jsonb,
   waiting_message text not null default '발표를 대기 중입니다.',
   timer_state text not null default 'reset' check (timer_state in ('reset', 'playing', 'paused')),
   timer_remain_secs integer not null default 300 check (timer_remain_secs >= 0),
@@ -43,8 +45,28 @@ create table if not exists public.discussion_public_display (
 alter table public.discussion_presentation_state
 add column if not exists waiting_message text not null default '발표를 대기 중입니다.';
 
+alter table public.discussion_presentation_state
+add column if not exists opening_slides jsonb not null default '[]'::jsonb;
+
+alter table public.discussion_presentation_state
+drop constraint if exists discussion_presentation_state_mode_check;
+
+alter table public.discussion_presentation_state
+add constraint discussion_presentation_state_mode_check
+check (mode in ('waiting', 'opening', 'show', 'finale'));
+
 alter table public.discussion_public_display
 add column if not exists waiting_message text not null default '발표를 대기 중입니다.';
+
+alter table public.discussion_public_display
+add column if not exists opening_slides jsonb not null default '[]'::jsonb;
+
+alter table public.discussion_public_display
+drop constraint if exists discussion_public_display_status_check;
+
+alter table public.discussion_public_display
+add constraint discussion_public_display_status_check
+check (status in ('waiting', 'opening', 'show', 'nodata', 'finale'));
 
 create or replace function public.set_discussion_updated_at()
 returns trigger
@@ -72,6 +94,7 @@ insert into public.discussion_presentation_state (
   id,
   mode,
   current_page_no,
+  opening_slides,
   waiting_message,
   timer_state,
   timer_remain_secs,
@@ -81,6 +104,7 @@ values (
   1,
   'waiting',
   1,
+  '[]'::jsonb,
   '발표를 대기 중입니다.',
   'reset',
   300,
@@ -95,6 +119,7 @@ insert into public.discussion_public_display (
   total_pages,
   title,
   content,
+  opening_slides,
   waiting_message,
   timer_state,
   timer_remain_secs,
@@ -108,6 +133,7 @@ values (
   1,
   '',
   '',
+  '[]'::jsonb,
   '발표를 대기 중입니다.',
   'reset',
   300,
@@ -124,12 +150,27 @@ set search_path = public
 as $$
 declare
   v_state public.discussion_presentation_state%rowtype;
+  v_default_opening_slides jsonb := $opening$[
+    {"title":"용인시민 100인 연석회의","body":"미래의 풍요와 오늘의 삶을 함께 보듬는 용인을 위해\n시민의 지혜를 모으는 자리에 오신 것을 환영합니다.","note":""},
+    {"title":"개회 선언","body":"지금부터 '용인시민 100인 연석회의 공론장'을 시작하겠습니다.","note":""},
+    {"title":"환영 및 참가자 안내","body":"바쁘신 와중에도 함께해주신 시민 여러분, 진심으로 감사합니다.\n오늘 이 자리는 다양한 세대와 분야의 시민 100인이 모여\n용인의 현재와 미래를 함께 이야기하는 자리입니다.","note":""},
+    {"title":"공론장 목적","body":"전문가가 아닌 시민이 직접 정책을 만드는 자리입니다.\n정답을 찾는 자리가 아니라, 서로의 경험과 생각을 모아\n실제 지방선거 후보자에게 제안할 '시민 정책'을 도출합니다.","note":""},
+    {"title":"진행 방식 안내","body":"총 10개의 주제 테이블이 운영됩니다.\n자신이 관심 있고 직접 이야기 나누고 싶은 주제 테이블에서\n테이블별 퍼실리테이터의 안내에 따라 논의를 진행합니다.","note":"지역 불균형 / 돌봄 시스템 / 기후·에너지 / 맞춤형 일자리 / 주택·교통 / 시민참여 / 지역경제 등"},
+    {"title":"우리의 3가지 약속","body":"첫째. 서로의 의견을 존중합니다.\n둘째. 발언 기회를 공평하게 나눕니다.\n셋째. 비판보다는 제안을 중심으로 이야기합니다.","note":""},
+    {"title":"테이블 논의 시작","body":"퍼실리테이터와 함께 구체적인 논의를 시작합니다.\n\n[입열기]\n나는 어떻게 이 자리에 참여하게 되었나요?\n생활, 일, 지역에서의 경험을 편하게 나누어 주세요.","note":""},
+    {"title":"문제 드러내기 및 쟁점 정리","body":"개인의 경험과 불편함을 우리 모두의 문제로 확장합니다.\n유사한 의견을 묶고 점 스티커 투표를 통해\n가장 중요하고 시급하며 실현 가능한 우선순위 쟁점을 선택합니다.","note":""},
+    {"title":"정책 아이디어 도출 및 정교화","body":"선택된 문제를 해결하기 위한 아이디어를 쏟아냅니다.\n평가하지 않기, 많이 내기, 자유롭게 말하기.\n도출된 아이디어를 현실적이고 설득력 있는 시민 정책으로 다듬습니다.","note":""},
+    {"title":"전체 공유 및 발표","body":"각 테이블에서 논의된 핵심 쟁점과 정책 제안을 전체와 함께 나눕니다.\n여러분의 이야기가 어떻게 모였는지 확인해 보겠습니다.","note":""},
+    {"title":"전체 기념 사진 촬영","body":"모든 발표가 마무리되었습니다.\n오늘의 소중한 자리를 기억하며, 참석해주신 100인의 시민 여러분과\n함께 기념 사진을 촬영하겠습니다.","note":""},
+    {"title":"폐회 및 마무리","body":"긴 시간 함께해주신 시민 여러분, 진심으로 감사합니다.\n오늘 도출된 제안은 지방선거 후보자에게 소중히 전달하겠습니다.\n이상으로 용인시민 100인 연석회의를 모두 마치겠습니다.","note":""}
+  ]$opening$::jsonb;
   v_status text := 'waiting';
   v_team_id integer := null;
   v_current_page integer := 1;
   v_total_pages integer := 1;
   v_title text := '';
   v_content text := '';
+  v_opening_slides jsonb := '[]'::jsonb;
   v_waiting_message text := '발표를 대기 중입니다.';
   v_finale_titles jsonb := '[]'::jsonb;
   v_page record;
@@ -144,12 +185,18 @@ begin
     v_state.mode := 'waiting';
     v_state.current_team_id := null;
     v_state.current_page_no := 1;
+    v_state.opening_slides := v_default_opening_slides;
     v_state.waiting_message := '발표를 대기 중입니다.';
     v_state.timer_state := 'reset';
     v_state.timer_remain_secs := 300;
     v_state.timer_last_action_at := timezone('utc', now());
   end if;
 
+  v_opening_slides := case
+    when jsonb_typeof(v_state.opening_slides) = 'array' and jsonb_array_length(v_state.opening_slides) > 0
+      then v_state.opening_slides
+    else v_default_opening_slides
+  end;
   v_waiting_message := coalesce(nullif(trim(v_state.waiting_message), ''), '발표를 대기 중입니다.');
 
   v_current_page := greatest(coalesce(v_state.current_page_no, 1), 1);
@@ -167,6 +214,18 @@ begin
     into v_finale_titles
     from public.discussion_presentation_pages
     where nullif(trim(title), '') is not null;
+  elsif v_state.mode = 'opening' then
+    v_status := 'opening';
+    v_total_pages := greatest(coalesce(jsonb_array_length(v_opening_slides), 0), 1);
+    v_current_page := least(v_current_page, v_total_pages);
+    v_title := coalesce(v_opening_slides -> (v_current_page - 1) ->> 'title', '');
+    v_content := trim(
+      both E'\n' from concat_ws(
+        E'\n\n',
+        nullif(trim(coalesce(v_opening_slides -> (v_current_page - 1) ->> 'body', '')), ''),
+        nullif(trim(coalesce(v_opening_slides -> (v_current_page - 1) ->> 'note', '')), '')
+      )
+    );
   elsif v_state.mode = 'show' and v_state.current_team_id is not null then
     v_team_id := v_state.current_team_id;
 
@@ -230,6 +289,7 @@ begin
     total_pages,
     title,
     content,
+    opening_slides,
     waiting_message,
     timer_state,
     timer_remain_secs,
@@ -245,6 +305,7 @@ begin
     v_total_pages,
     v_title,
     v_content,
+    v_opening_slides,
     v_waiting_message,
     coalesce(v_state.timer_state, 'reset'),
     coalesce(v_state.timer_remain_secs, 300),
@@ -259,6 +320,7 @@ begin
       total_pages = excluded.total_pages,
       title = excluded.title,
       content = excluded.content,
+      opening_slides = excluded.opening_slides,
       waiting_message = excluded.waiting_message,
       timer_state = excluded.timer_state,
       timer_remain_secs = excluded.timer_remain_secs,

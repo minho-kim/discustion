@@ -312,6 +312,176 @@
       font-weight: 700;
     }
 
+    .opening-panel {
+      background: linear-gradient(180deg, #233139 0%, #18242b 100%);
+    }
+
+    .opening-status-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    .opening-status-pill {
+      flex: 1;
+      min-width: 220px;
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: 1px solid #415163;
+      background: #18212c;
+      color: #d8e1ec;
+      font-size: 13px;
+      line-height: 1.5;
+      box-sizing: border-box;
+    }
+
+    .opening-status-pill.dirty {
+      border-color: #9a6700;
+      background: rgba(154, 103, 0, 0.16);
+      color: #ffd788;
+    }
+
+    .opening-status-pill.live {
+      border-color: #2c7a4b;
+      background: rgba(46, 166, 90, 0.16);
+      color: #d9ffe4;
+    }
+
+    .opening-slide-grid {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .opening-slide-btn {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-height: 76px;
+      justify-content: center;
+      align-items: center;
+      padding: 10px 8px;
+      border-radius: 10px;
+      border: 1px solid #4a5c68;
+      background: #1a2430;
+      color: #dce7f2;
+      cursor: pointer;
+      box-sizing: border-box;
+    }
+
+    .opening-slide-btn.active {
+      background: #0f62fe;
+      border-color: #9fc8ff;
+      color: #fff;
+    }
+
+    .opening-slide-btn.on-air {
+      box-shadow: 0 0 0 2px rgba(112, 219, 149, 0.55);
+    }
+
+    .opening-slide-index {
+      font-size: 12px;
+      font-weight: 700;
+      opacity: 0.9;
+    }
+
+    .opening-slide-title {
+      font-size: 13px;
+      line-height: 1.35;
+      text-align: center;
+      word-break: keep-all;
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+      overflow: hidden;
+    }
+
+    .opening-editor-shell {
+      margin-top: 16px;
+      padding: 18px;
+      border: 1px solid #415163;
+      border-radius: 14px;
+      background: #111b24;
+      box-sizing: border-box;
+    }
+
+    .opening-editor-shell label {
+      display: block;
+      margin-top: 14px;
+      margin-bottom: 8px;
+      color: #dbe6f3;
+      font-weight: 700;
+    }
+
+    .opening-editor-shell label:first-child {
+      margin-top: 0;
+    }
+
+    .opening-editor-shell input,
+    .opening-editor-shell textarea {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #4f6278;
+      border-radius: 10px;
+      background: #0c141d;
+      color: #fff;
+      font: inherit;
+      box-sizing: border-box;
+    }
+
+    .opening-editor-shell textarea {
+      min-height: 120px;
+      resize: vertical;
+    }
+
+    .opening-editor-note {
+      margin-top: 8px;
+      color: #9fb0c2;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .opening-editor-note.warning {
+      color: #ffc76b;
+      font-weight: 700;
+    }
+
+    .opening-preview-shell {
+      margin-top: 16px;
+      border: 1px solid #475464;
+      border-radius: 16px;
+      background: linear-gradient(135deg, rgba(15, 24, 33, 0.98) 0%, rgba(13, 34, 28, 0.96) 100%);
+      padding: 18px;
+      box-sizing: border-box;
+    }
+
+    .opening-preview-title {
+      font-size: 28px;
+      font-weight: 900;
+      margin-bottom: 14px;
+      word-break: keep-all;
+    }
+
+    .opening-preview-body {
+      padding: 16px;
+      border-radius: 12px;
+      background: rgba(7, 15, 24, 0.78);
+      color: #edf4fb;
+      line-height: 1.7;
+      white-space: pre-wrap;
+      min-height: 120px;
+      box-sizing: border-box;
+    }
+
+    .opening-preview-note {
+      margin-top: 14px;
+      color: #d8f3c8;
+      font-size: 14px;
+      line-height: 1.6;
+      white-space: pre-wrap;
+    }
+
     .page-ctrl {
       display: flex;
       justify-content: space-between;
@@ -551,6 +721,11 @@
       color: #d8dee9;
     }
 
+    .preview-badge.opening {
+      background: rgba(46, 166, 90, 0.2);
+      color: #c8f5d6;
+    }
+
     .preview-badge.show {
       background: rgba(0, 209, 255, 0.2);
       color: #8deaff;
@@ -671,6 +846,10 @@
         grid-template-columns: repeat(2, 1fr);
       }
 
+      .opening-slide-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+
       .page-ctrl,
       .danger-row,
       .panel-tools {
@@ -721,7 +900,39 @@
   </div>
 
   <div class="panel">
-    <h2>1. 발표 조 선택</h2>
+    <h2>1. 오프닝 화면</h2>
+    <div class="panel-tools">
+      <button class="secondary-btn primary-action" onclick="presentOpeningSlides()">현재 편집 슬라이드부터 오프닝 송출</button>
+      <button class="secondary-btn" onclick="saveOpeningSlides()">오프닝 텍스트 저장</button>
+    </div>
+    <div class="opening-status-row">
+      <div id="openingEditorStatus" class="opening-status-pill">오프닝 텍스트가 서버와 동기화되어 있습니다.</div>
+      <div id="openingLiveStatus" class="opening-status-pill">오프닝은 아직 메인 화면에 송출되지 않았습니다.</div>
+    </div>
+    <div id="openingSlideGrid" class="opening-slide-grid"></div>
+    <div class="opening-editor-shell">
+      <label for="openingTitleInput">슬라이드 제목</label>
+      <input id="openingTitleInput" type="text" placeholder="오프닝 슬라이드 제목을 입력해 주세요.">
+      <div id="openingTitleNote" class="opening-editor-note">현재 0자 / 권장 36자 이하</div>
+
+      <label for="openingBodyInput">본문</label>
+      <textarea id="openingBodyInput" placeholder="줄바꿈을 포함해 본문을 입력해 주세요."></textarea>
+      <div id="openingBodyNote" class="opening-editor-note">현재 0자 / 권장 260자 이하</div>
+
+      <label for="openingNoteInput">보조 문구</label>
+      <textarea id="openingNoteInput" placeholder="선택 사항입니다. 작은 안내 문구나 주제 목록을 넣을 수 있습니다."></textarea>
+      <div id="openingNoteNote" class="opening-editor-note">현재 0자 / 권장 120자 이하</div>
+    </div>
+    <div class="opening-preview-shell">
+      <p class="page-caption">메인 화면에 내보내기 전에 선택한 오프닝 슬라이드를 이곳에서 먼저 확인할 수 있습니다.</p>
+      <div id="openingPreviewTitle" class="opening-preview-title">오프닝 슬라이드를 불러오는 중입니다.</div>
+      <div id="openingPreviewBody" class="opening-preview-body">오프닝 본문이 여기에 표시됩니다.</div>
+      <div id="openingPreviewNote" class="opening-preview-note" style="display:none;"></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>2. 발표 조 선택</h2>
     <div class="panel-tools">
       <button class="secondary-btn" onclick="refreshTeamCatalog(true, false)">입력 현황 새로고침</button>
       <button id="presentSelectedBtn" class="secondary-btn primary-action" onclick="presentSelectedTeam()" disabled>선택 조를 1페이지부터 송출</button>
@@ -741,7 +952,7 @@
   </div>
 
   <div class="panel">
-    <h2>2. 타이머 제어</h2>
+    <h2>3. 타이머 제어</h2>
     <div class="timer-ctrl">
       <input type="number" id="minInput" class="timer-input" value="5"> 분
       <button class="t-btn btn-reset" onclick="timerAction('reset')">초기화</button>
@@ -760,12 +971,12 @@
   </div>
 
   <div class="panel">
-    <h2>3. 행사 종료 연출 (결과 모아보기)</h2>
+    <h2>4. 행사 종료 연출 (결과 모아보기)</h2>
     <button class="btn-finale" onclick="triggerFinale()">✨ 피날레 재생하기 ✨</button>
   </div>
 
   <div class="panel">
-    <h2>4. 데이터 초기화</h2>
+    <h2>5. 데이터 초기화</h2>
     <div class="danger-row">
       <button class="danger-btn btn-team-delete" onclick="deleteSelectedTeamData()">&lt;조별삭제&gt;</button>
       <button class="danger-btn btn-all-delete" onclick="deleteAllData()">&lt;전체삭제&gt;</button>
@@ -779,11 +990,12 @@
   </div>
 
   <div class="panel shortcut-panel">
-    <h2>5. 운영 단축키</h2>
+    <h2>6. 운영 단축키</h2>
     <div class="shortcut-list">
       <div class="shortcut-item"><kbd>1~9, 0</kbd>선택 조를 미리보기로 불러옵니다. `0`은 10조입니다.</div>
       <div class="shortcut-item"><kbd>Enter</kbd>현재 선택한 조를 1페이지부터 송출합니다.</div>
-      <div class="shortcut-item"><kbd>← / →</kbd>현재 송출 중인 페이지를 이전/다음 장으로 넘깁니다.</div>
+      <div class="shortcut-item"><kbd>O</kbd>현재 편집 중인 오프닝 슬라이드부터 송출합니다.</div>
+      <div class="shortcut-item"><kbd>← / →</kbd>현재 송출 중인 발표 페이지 또는 오프닝 슬라이드를 이전/다음 장으로 넘깁니다.</div>
       <div class="shortcut-item"><kbd>Space</kbd>타이머를 시작하거나 일시정지합니다.</div>
       <div class="shortcut-item"><kbd>R</kbd>입력한 분 수 기준으로 타이머를 초기화합니다.</div>
       <div class="shortcut-item"><kbd>W</kbd>현재 대기화면 문구로 대기화면으로 전환합니다.</div>
@@ -808,12 +1020,19 @@
     const appStore = window.PresentationStore;
     const DEFAULT_WAITING_MESSAGE = '발표를 대기 중입니다.';
     const WAITING_MESSAGE_SOFT_LIMIT = 36;
+    const OPENING_TITLE_SOFT_LIMIT = 36;
+    const OPENING_BODY_SOFT_LIMIT = 260;
+    const OPENING_NOTE_SOFT_LIMIT = 120;
 
     let adminAccessToken = '';
     let currentDisplayStatus = 'waiting';
     let currentTeamId = null;
     let currentPageNo = 1;
     let totalPageCount = 1;
+    let openingSlidesDraft = appStore.getDefaultOpeningSlides();
+    let selectedOpeningSlideNo = 1;
+    let openingSlidesSnapshot = JSON.stringify(openingSlidesDraft);
+    let openingSlidesDirty = false;
     let selectedTeamId = null;
     let selectedTeamPages = [];
     let selectedPreviewPageNo = 1;
@@ -886,7 +1105,7 @@
     }
 
     function renderControlStatus() {
-      const hasLivePages = currentDisplayStatus === 'show' && Boolean(currentTeamId);
+      const hasLivePages = currentDisplayStatus === 'show' || currentDisplayStatus === 'opening';
       const hasSelectedPreview = Boolean(selectedTeamPages.length);
 
       document.getElementById('curP').innerText = hasLivePages ? currentPageNo : '-';
@@ -900,6 +1119,8 @@
       document.getElementById('presentSelectedBtn').disabled = !selectedTeamId || selectedPreviewLoading;
       renderTeamButtons();
       renderSelectedPreview();
+      renderOpeningSlideButtons();
+      updateOpeningEditorStatus();
     }
 
     function clampPageNumber(pageNumber) {
@@ -950,6 +1171,181 @@
     function normalizeWaitingMessage(value) {
       const trimmed = String(value || '').trim();
       return trimmed || DEFAULT_WAITING_MESSAGE;
+    }
+
+    function buildOpeningSlidesSnapshot(slides) {
+      return JSON.stringify(appStore.normalizeOpeningSlides(slides));
+    }
+
+    function clampOpeningSlideNumber(pageNumber) {
+      const total = Math.max(1, openingSlidesDraft.length);
+
+      if (pageNumber < 1) {
+        return 1;
+      }
+
+      if (pageNumber > total) {
+        return total;
+      }
+
+      return pageNumber;
+    }
+
+    function getSelectedOpeningSlide() {
+      selectedOpeningSlideNo = clampOpeningSlideNumber(selectedOpeningSlideNo);
+      return openingSlidesDraft[selectedOpeningSlideNo - 1] || { title: '', body: '', note: '' };
+    }
+
+    function formatOpeningPreviewText(slide) {
+      if (!slide) {
+        return '';
+      }
+
+      return slide.body || '본문이 비어 있습니다.';
+    }
+
+    function updateOpeningFieldNotes() {
+      const titleInput = document.getElementById('openingTitleInput');
+      const bodyInput = document.getElementById('openingBodyInput');
+      const noteInput = document.getElementById('openingNoteInput');
+      const titleCount = titleInput.value.trim().length;
+      const bodyCount = bodyInput.value.trim().length;
+      const noteCount = noteInput.value.trim().length;
+
+      const titleNote = document.getElementById('openingTitleNote');
+      titleNote.className = titleCount > OPENING_TITLE_SOFT_LIMIT
+        ? 'opening-editor-note warning'
+        : 'opening-editor-note';
+      titleNote.innerText = titleCount > OPENING_TITLE_SOFT_LIMIT
+        ? '현재 ' + titleCount + '자 / ' + OPENING_TITLE_SOFT_LIMIT + '자가 넘어가면 화면이 답답해 보일 수 있습니다.'
+        : '현재 ' + titleCount + '자 / 권장 ' + OPENING_TITLE_SOFT_LIMIT + '자 이하';
+
+      const bodyNote = document.getElementById('openingBodyNote');
+      bodyNote.className = bodyCount > OPENING_BODY_SOFT_LIMIT
+        ? 'opening-editor-note warning'
+        : 'opening-editor-note';
+      bodyNote.innerText = bodyCount > OPENING_BODY_SOFT_LIMIT
+        ? '현재 ' + bodyCount + '자 / ' + OPENING_BODY_SOFT_LIMIT + '자가 넘어가면 화면이 답답해 보일 수 있습니다.'
+        : '현재 ' + bodyCount + '자 / 권장 ' + OPENING_BODY_SOFT_LIMIT + '자 이하';
+
+      const noteNote = document.getElementById('openingNoteNote');
+      noteNote.className = noteCount > OPENING_NOTE_SOFT_LIMIT
+        ? 'opening-editor-note warning'
+        : 'opening-editor-note';
+      noteNote.innerText = noteCount > OPENING_NOTE_SOFT_LIMIT
+        ? '현재 ' + noteCount + '자 / ' + OPENING_NOTE_SOFT_LIMIT + '자가 넘어가면 화면이 답답해 보일 수 있습니다.'
+        : '현재 ' + noteCount + '자 / 권장 ' + OPENING_NOTE_SOFT_LIMIT + '자 이하';
+    }
+
+    function updateOpeningEditorStatus() {
+      const editorStatus = document.getElementById('openingEditorStatus');
+      const liveStatus = document.getElementById('openingLiveStatus');
+
+      editorStatus.className = openingSlidesDirty
+        ? 'opening-status-pill dirty'
+        : 'opening-status-pill';
+      editorStatus.innerText = openingSlidesDirty
+        ? '오프닝 텍스트에 저장 전 수정이 있습니다. 저장하거나 바로 송출할 수 있습니다.'
+        : '오프닝 텍스트가 서버와 동기화되어 있습니다.';
+
+      if (currentDisplayStatus === 'opening') {
+        liveStatus.className = 'opening-status-pill live';
+        liveStatus.innerText = '현재 메인 화면은 오프닝 ' + currentPageNo + ' / ' + totalPageCount + '장을 송출 중입니다.';
+      } else {
+        liveStatus.className = 'opening-status-pill';
+        liveStatus.innerText = '오프닝은 아직 메인 화면에 송출되지 않았습니다.';
+      }
+    }
+
+    function renderOpeningSlideButtons() {
+      const grid = document.getElementById('openingSlideGrid');
+      grid.innerHTML = '';
+
+      for (let index = 0; index < openingSlidesDraft.length; index++) {
+        const slide = openingSlidesDraft[index] || {};
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = selectedOpeningSlideNo === index + 1
+          ? 'opening-slide-btn active'
+          : 'opening-slide-btn';
+
+        if (currentDisplayStatus === 'opening' && currentPageNo === index + 1) {
+          button.classList.add('on-air');
+        }
+
+        button.onclick = function () {
+          selectOpeningSlide(index + 1);
+        };
+
+        const indexNode = document.createElement('div');
+        indexNode.className = 'opening-slide-index';
+        indexNode.innerText = (index + 1) + '장';
+        button.appendChild(indexNode);
+
+        const titleNode = document.createElement('div');
+        titleNode.className = 'opening-slide-title';
+        titleNode.innerText = slide.title || '제목 없음';
+        button.appendChild(titleNode);
+
+        grid.appendChild(button);
+      }
+    }
+
+    function renderOpeningDraftPreview() {
+      const slide = getSelectedOpeningSlide();
+      const note = slide.note || '';
+
+      document.getElementById('openingPreviewTitle').innerText = slide.title || '제목을 입력해 주세요.';
+      document.getElementById('openingPreviewBody').innerText = formatOpeningPreviewText(slide);
+      document.getElementById('openingPreviewNote').innerText = note;
+      document.getElementById('openingPreviewNote').style.display = note ? 'block' : 'none';
+    }
+
+    function syncOpeningDirtyState() {
+      openingSlidesDirty = buildOpeningSlidesSnapshot(openingSlidesDraft) !== openingSlidesSnapshot;
+      updateOpeningFieldNotes();
+      updateOpeningEditorStatus();
+      renderOpeningSlideButtons();
+      renderOpeningDraftPreview();
+    }
+
+    function populateOpeningEditor() {
+      const slide = getSelectedOpeningSlide();
+      document.getElementById('openingTitleInput').value = slide.title || '';
+      document.getElementById('openingBodyInput').value = slide.body || '';
+      document.getElementById('openingNoteInput').value = slide.note || '';
+      updateOpeningFieldNotes();
+      updateOpeningEditorStatus();
+      renderOpeningSlideButtons();
+      renderOpeningDraftPreview();
+    }
+
+    function syncOpeningSlides(slides, forceSync) {
+      const normalized = appStore.normalizeOpeningSlides(slides);
+
+      if (!openingSlidesDirty || forceSync) {
+        openingSlidesDraft = normalized;
+        openingSlidesSnapshot = buildOpeningSlidesSnapshot(normalized);
+        openingSlidesDirty = false;
+        selectedOpeningSlideNo = clampOpeningSlideNumber(selectedOpeningSlideNo);
+        populateOpeningEditor();
+        return;
+      }
+
+      updateOpeningEditorStatus();
+      renderOpeningSlideButtons();
+      renderOpeningDraftPreview();
+    }
+
+    function handleOpeningFieldInput(fieldName, value) {
+      const slide = getSelectedOpeningSlide();
+      slide[fieldName] = value;
+      syncOpeningDirtyState();
+    }
+
+    function selectOpeningSlide(index) {
+      selectedOpeningSlideNo = clampOpeningSlideNumber(index);
+      populateOpeningEditor();
     }
 
     function updateWaitingMessageUi() {
@@ -1127,6 +1523,21 @@
       const content = document.getElementById('previewContent');
 
       badge.className = 'preview-badge ' + payload.status;
+
+      if (payload.status === 'opening') {
+        const slide = payload.slide || {};
+        const previewText = slide.note
+          ? ((slide.body || '') ? slide.body + '\n\n' + slide.note : slide.note)
+          : (slide.body || '');
+
+        badge.innerText = '오프닝';
+        meta.innerText = payload.currentPage + '/' + payload.totalPages + ' 슬라이드가 메인 화면에 표시되고 있습니다.';
+        summary.innerText = '화면 모드: 오프닝';
+        title.innerText = slide.title || '오프닝 슬라이드';
+        content.innerText = previewText || '오프닝 본문이 없습니다.';
+        renderFinalePreview([]);
+        return;
+      }
 
       if (payload.status === 'show') {
         badge.innerText = '송출 중';
@@ -1371,6 +1782,10 @@
         currentTeamId = display.team_id;
         currentPageNo = display.current_page || 1;
         totalPageCount = Math.max(1, display.total_pages || 1);
+      } else if (display.status === 'opening') {
+        currentTeamId = null;
+        currentPageNo = display.current_page || 1;
+        totalPageCount = Math.max(1, display.total_pages || 1);
       } else {
         currentTeamId = null;
         currentPageNo = 1;
@@ -1386,6 +1801,7 @@
 
       renderControlStatus();
       syncLiveTimer(previewPayload.timer);
+      syncOpeningSlides(display.opening_slides, false);
       syncWaitingMessageEditor(display.waiting_message, false);
       renderPreview(previewPayload);
     }
@@ -1417,6 +1833,53 @@
         selectedPreviewLoading = false;
         renderControlStatus();
         handleAdminError(error, '조 데이터 확인 실패');
+      }
+    }
+
+    async function saveOpeningSlides() {
+      try {
+        const result = await appStore.adminSetState({
+          opening_slides: openingSlidesDraft
+        }, adminAccessToken);
+
+        openingSlidesSnapshot = buildOpeningSlidesSnapshot(openingSlidesDraft);
+        openingSlidesDirty = false;
+
+        if (result && result.publicDisplay) {
+          applyDisplayToUi(result.publicDisplay);
+        } else {
+          await refreshStatus();
+        }
+
+        populateOpeningEditor();
+        showModal('오프닝 텍스트를 저장했습니다.');
+      } catch (error) {
+        handleAdminError(error, '오프닝 텍스트 저장 실패');
+      }
+    }
+
+    async function presentOpeningSlides() {
+      try {
+        const result = await appStore.adminSetState({
+          mode: 'opening',
+          current_team_id: null,
+          current_page_no: selectedOpeningSlideNo,
+          opening_slides: openingSlidesDraft
+        }, adminAccessToken);
+
+        openingSlidesSnapshot = buildOpeningSlidesSnapshot(openingSlidesDraft);
+        openingSlidesDirty = false;
+
+        if (result && result.publicDisplay) {
+          applyDisplayToUi(result.publicDisplay);
+        } else {
+          await refreshStatus();
+        }
+
+        populateOpeningEditor();
+        showModal(selectedOpeningSlideNo + '번째 오프닝 슬라이드부터 송출했습니다.');
+      } catch (error) {
+        handleAdminError(error, '오프닝 송출 실패');
       }
     }
 
@@ -1516,7 +1979,10 @@
     }
 
     async function movePage(delta) {
-      if (!currentTeamId || currentDisplayStatus !== 'show') {
+      const isOpeningLive = currentDisplayStatus === 'opening';
+      const isPresentationLive = currentDisplayStatus === 'show' && Boolean(currentTeamId);
+
+      if (!isOpeningLive && !isPresentationLive) {
         return;
       }
 
@@ -1525,11 +1991,20 @@
       renderControlStatus();
 
       try {
-        const result = await appStore.adminSetState({
-          mode: 'show',
-          current_team_id: currentTeamId,
-          current_page_no: target
-        }, adminAccessToken);
+        const result = await appStore.adminSetState(
+          isOpeningLive
+            ? {
+              mode: 'opening',
+              current_team_id: null,
+              current_page_no: target
+            }
+            : {
+              mode: 'show',
+              current_team_id: currentTeamId,
+              current_page_no: target
+            },
+          adminAccessToken
+        );
 
         if (result && result.publicDisplay) {
           applyDisplayToUi(result.publicDisplay);
@@ -1592,6 +2067,12 @@
       if (event.key === 'Enter') {
         event.preventDefault();
         presentSelectedTeam();
+        return;
+      }
+
+      if (event.key === 'o' || event.key === 'O') {
+        event.preventDefault();
+        presentOpeningSlides();
         return;
       }
 
@@ -1727,7 +2208,7 @@
     }
 
     window.addEventListener('beforeunload', function (event) {
-      if (waitingMessageDirty) {
+      if (waitingMessageDirty || openingSlidesDirty) {
         event.preventDefault();
         event.returnValue = '';
       }
@@ -1744,7 +2225,17 @@
       .then(async function (session) {
         adminAccessToken = session && session.accessToken ? session.accessToken : '';
         document.getElementById('waitingMessageInput').addEventListener('input', handleWaitingMessageInput);
+        document.getElementById('openingTitleInput').addEventListener('input', function (event) {
+          handleOpeningFieldInput('title', event.target.value);
+        });
+        document.getElementById('openingBodyInput').addEventListener('input', function (event) {
+          handleOpeningFieldInput('body', event.target.value);
+        });
+        document.getElementById('openingNoteInput').addEventListener('input', function (event) {
+          handleOpeningFieldInput('note', event.target.value);
+        });
         window.addEventListener('keydown', handleShortcutKeydown);
+        syncOpeningSlides(appStore.getDefaultOpeningSlides(), true);
         syncWaitingMessageEditor(DEFAULT_WAITING_MESSAGE, true);
         renderControlStatus();
         await refreshStatus();
