@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>토론회 메인 화면</title>
+  <title>토론회 메인 출력 화면</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@100;300;400;700;900&display=swap" rel="stylesheet">
@@ -118,17 +118,19 @@
       align-items: center;
       justify-content: center;
       overflow: hidden;
-      background: #050a12;
+      background: #eaf3ed;
     }
 
     .opening-stage {
       position: absolute;
       inset: 0;
-      background:
-        linear-gradient(135deg, rgba(5, 10, 18, 0.9) 0%, rgba(8, 19, 30, 0.76) 42%, rgba(11, 45, 27, 0.7) 100%),
-        url('./banner.png') center center / cover no-repeat;
-      transform: scale(1.04);
-      filter: saturate(0.9) brightness(0.78);
+      background-color: #eaf3ed;
+      background-image: url('./banner.png');
+      background-size: auto 100vh;
+      background-position-x: 0%;
+      background-position-y: bottom;
+      background-repeat: no-repeat;
+      transition: background-position-x 0.8s ease-in-out;
     }
 
     .opening-shell {
@@ -153,33 +155,36 @@
       align-items: center;
       padding: 0.9vh 1.6vw;
       border-radius: 999px;
-      background: rgba(46, 166, 90, 0.18);
-      border: 1px solid rgba(112, 219, 149, 0.28);
-      color: #dff8e6;
+      background: rgba(255, 255, 255, 0.76);
+      border: 1px solid rgba(46, 166, 90, 0.18);
+      color: #214b2d;
       font-size: clamp(16px, 1.25vw, 26px);
       font-weight: 700;
       letter-spacing: 0.03em;
     }
 
     .opening-page {
-      color: rgba(234, 243, 237, 0.9);
+      color: #50615a;
       font-size: clamp(18px, 1.35vw, 28px);
       font-weight: 700;
+      background: rgba(255, 255, 255, 0.72);
+      padding: 0.55vh 1vw;
+      border-radius: 999px;
     }
 
     .opening-card {
       padding: clamp(32px, 4vw, 72px);
-      border-radius: 32px;
-      background: rgba(9, 18, 28, 0.7);
-      border: 1px solid rgba(172, 212, 228, 0.18);
-      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
+      border-radius: 24px;
+      background: rgba(255, 255, 255, 0.85);
+      border-top: 6px solid #2ea65a;
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.08);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
     }
 
     .opening-eyebrow {
       margin-bottom: 1.2vh;
-      color: #98bfd0;
+      color: #2d5e3a;
       font-size: clamp(14px, 1vw, 20px);
       font-weight: 700;
       letter-spacing: 0.14em;
@@ -191,7 +196,7 @@
       font-size: clamp(42px, 4.2vw, 78px);
       font-weight: 900;
       line-height: 1.15;
-      color: #ffffff;
+      color: #222;
       word-break: keep-all;
     }
 
@@ -199,7 +204,7 @@
       margin-top: 2.4vh;
       font-size: clamp(22px, 2vw, 38px);
       line-height: 1.68;
-      color: rgba(236, 244, 250, 0.96);
+      color: #444;
       white-space: pre-wrap;
       word-break: keep-all;
     }
@@ -207,8 +212,8 @@
     .opening-note {
       margin-top: 2vh;
       padding-top: 1.6vh;
-      border-top: 1px solid rgba(152, 191, 208, 0.18);
-      color: #d8f3c8;
+      border-top: 1px solid #d8dee0;
+      color: #666;
       font-size: clamp(16px, 1.22vw, 26px);
       line-height: 1.6;
       white-space: pre-wrap;
@@ -326,6 +331,7 @@
     let finaleNodes = [];
     let finaleAnimationFrame = null;
     let displayChannel = null;
+    let fallbackSyncInterval = null;
 
     function formatTime(seconds) {
       const safeSeconds = Math.max(0, seconds);
@@ -495,6 +501,11 @@
       if (res.status === 'opening') {
         const slide = res.slide || {};
         const note = slide.note || '';
+        const openingStage = document.querySelector('.opening-stage');
+        const progress = res.totalPages > 1
+          ? ((res.currentPage - 1) / (res.totalPages - 1)) * 100
+          : 0;
+        openingStage.style.backgroundPositionX = progress + '%';
         document.getElementById('openingPageLabel').innerText = res.currentPage + ' / ' + res.totalPages;
         document.getElementById('openingTitleLabel').innerText = slide.title || '오프닝 슬라이드';
         document.getElementById('openingBodyLabel').innerText = slide.body || '';
@@ -556,12 +567,19 @@
         clearInterval(timerInterval);
       }
 
+      if (fallbackSyncInterval) {
+        clearInterval(fallbackSyncInterval);
+      }
+
       stopFinale();
       appStore.unsubscribe(displayChannel);
     });
 
     loadAndRender();
     displayChannel = appStore.subscribeToPresentationChanges('presentation-display', handlePresentationChange);
+    fallbackSyncInterval = setInterval(function () {
+      loadAndRender();
+    }, 1000);
   </script>
 </body>
 </html>
