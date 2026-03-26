@@ -905,6 +905,8 @@
       <h2>현재 송출 화면</h2>
       <div class="section-header-actions">
         <button class="secondary-btn compact" onclick="openDisplayPage()">디스플레이 열기</button>
+        <button class="secondary-btn compact" onclick="presentOpeningSlides()">오프닝 화면 송출</button>
+        <button id="quickPresentSelectedBtn" class="secondary-btn compact primary-action" onclick="presentSelectedTeam()" disabled>선택 조 발표 송출</button>
       </div>
     </div>
     <div class="preview-shell">
@@ -924,6 +926,7 @@
       <div class="page-info"><span id="curP">-</span> / <span id="totalP">-</span></div>
       <button id="liveNextPageBtn" class="page-btn" onclick="movePage(1)">현재 송출 다음 장 ▶</button>
     </div>
+    <p class="selection-summary">오프닝이 나가고 있을 때 발표를 시작하려면 `선택 조 발표 송출`, 발표 후 다시 오프닝으로 돌아가려면 `오프닝 화면 송출`을 누르면 됩니다.</p>
     <button class="btn-waiting" onclick="setWaitingMode()">대기화면으로 전환</button>
     <div class="waiting-editor">
       <label for="waitingMessageInput">대기화면 문구</label>
@@ -944,7 +947,7 @@
     </div>
     <div id="openingPanelBody" class="opening-panel-body" hidden>
     <div class="panel-tools">
-      <button class="secondary-btn primary-action" onclick="presentOpeningSlides()">현재 편집 슬라이드부터 오프닝 송출</button>
+      <button class="secondary-btn primary-action" onclick="presentOpeningSlides()">현재 편집 슬라이드부터 오프닝 화면 송출</button>
       <button class="secondary-btn" onclick="saveOpeningSlides()">오프닝 텍스트 저장</button>
     </div>
     <div class="opening-status-row">
@@ -978,7 +981,7 @@
     <h2>2. 발표 조 선택</h2>
     <div class="panel-tools">
       <button class="secondary-btn" onclick="refreshTeamCatalog(true, false)">입력 현황 새로고침</button>
-      <button id="presentSelectedBtn" class="secondary-btn primary-action" onclick="presentSelectedTeam()" disabled>선택 조를 1페이지부터 송출</button>
+      <button id="presentSelectedBtn" class="secondary-btn primary-action" onclick="presentSelectedTeam()" disabled>선택 조 발표 화면 송출</button>
     </div>
     <div class="grid" id="teamGrid"></div>
     <p id="selectionSummary" class="selection-summary">조를 선택하면 입력된 발표 내용을 미리 확인할 수 있습니다.</p>
@@ -1187,6 +1190,7 @@
       document.getElementById('previewPrevBtn').disabled = !hasSelectedPreview;
       document.getElementById('previewNextBtn').disabled = !hasSelectedPreview;
       document.getElementById('presentSelectedBtn').disabled = !selectedTeamId || selectedPreviewLoading;
+      document.getElementById('quickPresentSelectedBtn').disabled = !selectedTeamId || selectedPreviewLoading;
       renderTeamButtons();
       renderSelectedPreview();
       renderOpeningSlideButtons();
