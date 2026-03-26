@@ -3,8 +3,6 @@
     const baseConfig = Object.assign(
       {
         enabled: true,
-        pin: '',
-        storageKey: 'discussion_presentation_admin_unlock_until',
         rememberMinutes: 480,
         pages: {}
       },
@@ -18,23 +16,34 @@
     return Object.assign({}, baseConfig, pageConfig);
   }
 
-  function readUnlockUntil(storageKey) {
+  function getAdminEndpoint() {
+    const supabaseConfig = window.PRESENTATION_SUPABASE_CONFIG || {};
+
+    if (!supabaseConfig.url || !supabaseConfig.adminFunctionName) {
+      throw new Error('Admin authentication endpoint is not configured.');
+    }
+
+    return supabaseConfig.url.replace(/\/$/, '') + '/functions/v1/' + supabaseConfig.adminFunctionName + '/auth';
+  }
+
+  function readSession(storageKey) {
     try {
-      return Number(localStorage.getItem(storageKey) || 0);
+      const raw = localStorage.getItem(storageKey);
+      return raw ? JSON.parse(raw) : null;
     } catch (error) {
-      return 0;
+      return null;
     }
   }
 
-  function writeUnlockUntil(storageKey, value) {
+  function writeSession(storageKey, session) {
     try {
-      localStorage.setItem(storageKey, String(value));
+      localStorage.setItem(storageKey, JSON.stringify(session));
     } catch (error) {
       return;
     }
   }
 
-  function clearUnlock(storageKey) {
+  function clearSession(storageKey) {
     try {
       localStorage.removeItem(storageKey);
     } catch (error) {
@@ -42,8 +51,12 @@
     }
   }
 
-  function isUnlocked(config) {
-    return readUnlockUntil(config.storageKey) > Date.now();
+  function isValidSession(session) {
+    return Boolean(
+      session &&
+      session.accessToken &&
+      Number(session.expiresAt) > Date.now()
+    );
   }
 
   function createOverlay(pageTitle) {
@@ -55,7 +68,7 @@
       '  <p class="pin-desc">' + pageTitle + '에 들어가려면 PIN을 입력하세요.</p>',
       '  <form id="pinGateForm">',
       '    <input id="pinGateInput" type="password" inputmode="numeric" autocomplete="off" placeholder="PIN 입력">',
-      '    <button type="submit">잠금 해제</button>',
+      '    <button id="pinGateSubmit" type="submit">잠금 해제</button>',
       '  </form>',
       '  <p id="pinGateError" class="pin-error"></p>',
       '</div>'
@@ -73,56 +86,117 @@
     document.documentElement.classList.remove('pin-locked');
   }
 
+  async function authenticate(scope, pin, rememberMinutes) {
+    const response = await fetch(getAdminEndpoint(), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        scope: scope,
+        pin: pin,
+        rememberMinutes: rememberMinutes
+      })
+    });
+
+    let payload = null;
+
+    try {
+      payload = await response.json();
+    } catch (error) {
+      payload = null;
+    }
+
+    if (!response.ok) {
+      const message = payload && payload.error
+        ? payload.error
+        : '관리 인증에 실패했습니다.';
+      throw new Error(message);
+    }
+
+    return payload;
+  }
+
+  function getSession(options) {
+    const config = getConfig(options);
+    const session = readSession(config.storageKey);
+
+    if (!isValidSession(session)) {
+      clearSession(config.storageKey);
+      return null;
+    }
+
+    return session;
+  }
+
+  function getAccessToken(options) {
+    const session = getSession(options);
+    return session ? session.accessToken : '';
+  }
+
   function mount(options) {
     const config = getConfig(options);
     const pageTitle = (options && options.pageTitle) || '관리 화면';
 
     return new Promise(function (resolve) {
-      if (!config.enabled || !config.pin) {
+      if (!config.enabled) {
         unlockPage(null);
-        resolve(true);
+        resolve(null);
         return;
       }
 
-      if (isUnlocked(config)) {
+      const existingSession = getSession(options);
+
+      if (existingSession) {
         unlockPage(null);
-        resolve(true);
+        resolve(existingSession);
         return;
       }
 
-      clearUnlock(config.storageKey);
+      clearSession(config.storageKey);
 
       const overlay = createOverlay(pageTitle);
       const form = document.getElementById('pinGateForm');
       const input = document.getElementById('pinGateInput');
+      const submitBtn = document.getElementById('pinGateSubmit');
       const errorText = document.getElementById('pinGateError');
 
       input.focus();
 
-      form.addEventListener('submit', function (event) {
+      form.addEventListener('submit', async function (event) {
         event.preventDefault();
+        errorText.innerText = '';
+        submitBtn.disabled = true;
+        submitBtn.innerText = '확인 중...';
 
-        if (input.value === String(config.pin)) {
-          const unlockUntil = Date.now() + config.rememberMinutes * 60 * 1000;
-          writeUnlockUntil(config.storageKey, unlockUntil);
+        try {
+          const session = await authenticate(
+            config.scope || (options && options.pageKey) || '',
+            input.value.trim(),
+            config.rememberMinutes
+          );
+          writeSession(config.storageKey, session);
           unlockPage(overlay);
-          resolve(true);
-          return;
+          resolve(session);
+        } catch (error) {
+          errorText.innerText = error.message || 'PIN이 일치하지 않습니다.';
+          input.select();
+          submitBtn.disabled = false;
+          submitBtn.innerText = '잠금 해제';
         }
-
-        errorText.innerText = 'PIN이 일치하지 않습니다.';
-        input.select();
       });
     });
   }
 
   function reset(options) {
     const config = getConfig(options);
-    clearUnlock(config.storageKey);
+    clearSession(config.storageKey);
   }
 
   window.PresentationPinGate = {
     mount: mount,
-    reset: reset
+    reset: reset,
+    getSession: getSession,
+    getAccessToken: getAccessToken
   };
 })();

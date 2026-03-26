@@ -303,6 +303,7 @@
   <script>
     const appStore = window.PresentationStore;
 
+    let adminAccessToken = '';
     let currentTeamId = null;
     let currentPageNo = 1;
     let totalPageCount = 1;
@@ -312,7 +313,6 @@
       lastAction: new Date().toISOString()
     };
     let controlChannel = null;
-    let refreshRequestId = 0;
 
     function showModal(msg) {
       document.getElementById('modalText').innerText = msg;
@@ -361,39 +361,49 @@
       return Number.isFinite(mins) && mins >= 0 ? mins : 5;
     }
 
-    async function syncTeamPages(teamId, force) {
-      if (!teamId) {
-        totalPageCount = 1;
-        return [];
+    function handleAdminError(error, fallbackMessage) {
+      if (error && error.status === 401) {
+        window.PresentationPinGate.reset({ pageKey: 'control' });
+        showModal('관리 인증이 만료되었습니다. 페이지를 새로고침하고 PIN을 다시 입력해 주세요.');
+        return true;
       }
 
-      const pages = await appStore.fetchPages(teamId, { force: Boolean(force) });
-      totalPageCount = Math.max(1, pages.length);
-      currentPageNo = clampPageNumber(currentPageNo);
-      renderControlStatus();
-      return pages;
+      showModal(fallbackMessage + ': ' + ((error && error.message) || '연결 상태를 확인해 주세요.'));
+      return false;
     }
 
-    async function applyStateToUi(state, options) {
-      const normalizedState = appStore.hydrateState(state);
-      timerSnapshot = appStore.buildTimerData(normalizedState);
+    function applyDisplayToUi(displayRow) {
+      const display = appStore.hydratePublicDisplay(displayRow);
+      timerSnapshot = appStore.buildTimerData(display);
 
-      if (normalizedState.mode === 'show' && normalizedState.current_team_id) {
-        currentTeamId = normalizedState.current_team_id;
-        currentPageNo = normalizedState.current_page_no || 1;
-        await syncTeamPages(currentTeamId, options && options.forcePages);
+      if (display.status === 'show' || display.status === 'nodata') {
+        currentTeamId = display.team_id;
+        currentPageNo = display.current_page || 1;
+        totalPageCount = Math.max(1, display.total_pages || 1);
       } else {
         currentTeamId = null;
         currentPageNo = 1;
         totalPageCount = 1;
-        renderControlStatus();
       }
 
-      if (normalizedState.timer_state === 'reset') {
+      if (display.timer_state === 'reset') {
         document.getElementById('minInput').value = Math.max(
           0,
-          Math.floor((normalizedState.timer_remain_secs || 0) / 60)
+          Math.floor((display.timer_remain_secs || 0) / 60)
         );
+      }
+
+      renderControlStatus();
+    }
+
+    async function refreshStatus(displayOverride) {
+      try {
+        const display = displayOverride
+          ? appStore.hydratePublicDisplay(displayOverride)
+          : await appStore.fetchPublicDisplay();
+        applyDisplayToUi(display);
+      } catch (error) {
+        showModal('상태 동기화 실패: ' + (error.message || 'DB 설정을 확인해 주세요.'));
       }
     }
 
@@ -404,28 +414,38 @@
       renderControlStatus();
 
       try {
-        const nextState = await appStore.setState({
+        const result = await appStore.adminSetState({
           mode: 'show',
           current_team_id: id,
           current_page_no: 1
-        });
-        await applyStateToUi(nextState);
+        }, adminAccessToken);
+
+        if (result && result.publicDisplay) {
+          applyDisplayToUi(result.publicDisplay);
+        } else {
+          await refreshStatus();
+        }
       } catch (error) {
-        refreshStatus();
-        showModal('조 선택 실패: ' + (error.message || '권한 또는 연결 상태를 확인해 주세요.'));
+        await refreshStatus();
+        handleAdminError(error, '조 선택 실패');
       }
     }
 
     async function triggerFinale() {
       try {
-        await appStore.setState({
+        const result = await appStore.adminSetState({
           mode: 'finale',
           current_team_id: null,
           current_page_no: 1
-        });
+        }, adminAccessToken);
+
+        if (result && result.publicDisplay) {
+          applyDisplayToUi(result.publicDisplay);
+        }
+
         showModal('빔프로젝터에 피날레 연출이 시작되었습니다!');
       } catch (error) {
-        showModal('피날레 시작 실패: ' + (error.message || '연결 상태를 확인해 주세요.'));
+        handleAdminError(error, '피날레 시작 실패');
       }
     }
 
@@ -439,15 +459,18 @@
       renderControlStatus();
 
       try {
-        const nextState = await appStore.setState({
+        const result = await appStore.adminSetState({
           mode: 'show',
           current_team_id: currentTeamId,
           current_page_no: target
-        });
-        await applyStateToUi(nextState);
+        }, adminAccessToken);
+
+        if (result && result.publicDisplay) {
+          applyDisplayToUi(result.publicDisplay);
+        }
       } catch (error) {
-        refreshStatus();
-        showModal('페이지 이동 실패: ' + (error.message || '연결 상태를 확인해 주세요.'));
+        await refreshStatus();
+        handleAdminError(error, '페이지 이동 실패');
       }
     }
 
@@ -459,58 +482,25 @@
       }
 
       try {
-        await appStore.setState({
+        const result = await appStore.adminSetState({
           timer_state: state,
           timer_remain_secs: nextRemainSecs,
           timer_last_action_at: new Date().toISOString()
-        });
+        }, adminAccessToken);
+
+        if (result && result.publicDisplay) {
+          applyDisplayToUi(result.publicDisplay);
+        }
+
         showModal('타이머 ' + state + ' 명령이 전송되었습니다.');
       } catch (error) {
-        showModal('타이머 제어 실패: ' + (error.message || '연결 상태를 확인해 주세요.'));
-      }
-    }
-
-    async function refreshStatus(stateOverride, options) {
-      const requestId = ++refreshRequestId;
-
-      try {
-        const state = stateOverride
-          ? appStore.hydrateState(stateOverride)
-          : await appStore.fetchState();
-
-        await applyStateToUi(state, options);
-
-        if (requestId !== refreshRequestId) {
-          return;
-        }
-      } catch (error) {
-        showModal('상태 동기화 실패: ' + (error.message || 'DB 설정을 확인해 주세요.'));
+        handleAdminError(error, '타이머 제어 실패');
       }
     }
 
     async function handlePresentationChange(payload) {
-      if (payload.table === appStore.config.pagesTable) {
-        const changedTeamId = (payload.new && payload.new.team_id) || (payload.old && payload.old.team_id);
-
-        if (changedTeamId) {
-          appStore.invalidateTeamPages(changedTeamId);
-        } else {
-          appStore.invalidateAllPages();
-        }
-
-        const cachedState = appStore.getCachedState();
-        const shouldForceRefresh = cachedState.mode === 'finale'
-          || String(cachedState.current_team_id || '') === String(changedTeamId || '');
-
-        if (shouldForceRefresh) {
-          await refreshStatus(cachedState, { forcePages: true });
-        }
-
-        return;
-      }
-
-      if (payload.table === appStore.config.stateTable && payload.new) {
-        await refreshStatus(payload.new);
+      if (payload.table === appStore.config.displayTable && payload.new) {
+        applyDisplayToUi(payload.new);
         return;
       }
 
@@ -523,7 +513,8 @@
 
     window.PresentationPinGate
       .mount({ pageKey: 'control', pageTitle: '운영진 리모컨 화면' })
-      .then(function () {
+      .then(function (session) {
+        adminAccessToken = session && session.accessToken ? session.accessToken : '';
         renderControlStatus();
         refreshStatus();
         controlChannel = appStore.subscribeToPresentationChanges('presentation-control', handlePresentationChange);

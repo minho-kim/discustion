@@ -270,6 +270,7 @@
   <script src="./supabase-client.js"></script>
   <script>
     const appStore = window.PresentationStore;
+    let adminAccessToken = '';
 
     function showModal(msg) {
       document.getElementById('modalText').innerText = msg;
@@ -366,7 +367,7 @@
       container.innerHTML = '';
 
       try {
-        const pages = await appStore.fetchPages(teamId);
+        const pages = await appStore.adminFetchPages(teamId, adminAccessToken, { force: true });
 
         if (!pages.length) {
           addPage();
@@ -378,6 +379,12 @@
         });
       } catch (error) {
         addPage();
+        if (error.status === 401) {
+          window.PresentationPinGate.reset({ pageKey: 'input' });
+          showModal('관리 인증이 만료되었습니다. 페이지를 새로고침하고 PIN을 다시 입력해 주세요.');
+          return;
+        }
+
         showModal('기존 데이터를 불러오지 못했습니다. 새로 입력은 가능합니다.');
       }
     }
@@ -407,9 +414,15 @@
       submitBtn.innerText = '서버에 저장 중...';
 
       try {
-        await appStore.savePages(teamId, pagesData);
+        await appStore.adminSavePages(teamId, pagesData, adminAccessToken);
         showModal(teamId + '조의 ' + pagesData.length + '개 페이지 데이터가 성공적으로 저장되었습니다.');
       } catch (error) {
+        if (error.status === 401) {
+          window.PresentationPinGate.reset({ pageKey: 'input' });
+          showModal('관리 인증이 만료되었습니다. 페이지를 새로고침하고 PIN을 다시 입력해 주세요.');
+          return;
+        }
+
         showModal('저장 실패: ' + (error.message || '네트워크 오류나 권한 문제를 확인해 주세요.'));
       } finally {
         submitBtn.disabled = false;
@@ -420,7 +433,8 @@
     window.onload = function () {
       window.PresentationPinGate
         .mount({ pageKey: 'input', pageTitle: '퍼실리테이터 입력 화면' })
-        .then(function () {
+        .then(function (session) {
+          adminAccessToken = session && session.accessToken ? session.accessToken : '';
           document.getElementById('teamSelect').addEventListener('change', loadTeamPages);
           loadTeamPages();
         });

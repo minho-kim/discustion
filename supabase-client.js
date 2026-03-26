@@ -6,9 +6,7 @@
   const { createClient } = window.supabase;
   const config = window.PRESENTATION_SUPABASE_CONFIG;
   const pagesCache = new Map();
-  let titlesCache = null;
-  let stateCache = null;
-  let hasFetchedState = false;
+  let publicDisplayCache = null;
 
   const client = createClient(config.url, config.publishableKey, {
     auth: {
@@ -18,39 +16,46 @@
     }
   });
 
-  function getDefaultState() {
+  function getDefaultPublicDisplay() {
     return {
-      id: config.stateRowId,
-      mode: 'waiting',
-      current_team_id: null,
-      current_page_no: 1,
+      id: config.publicDisplayRowId,
+      status: 'waiting',
+      team_id: null,
+      current_page: 1,
+      total_pages: 1,
+      title: '',
+      content: '',
       timer_state: 'reset',
       timer_remain_secs: 300,
       timer_last_action_at: new Date().toISOString(),
+      finale_titles: [],
       updated_at: new Date().toISOString()
     };
   }
 
-  function normalizeState(row) {
-    return Object.assign(getDefaultState(), row || {});
+  function normalizePublicDisplay(row) {
+    const normalized = Object.assign(getDefaultPublicDisplay(), row || {});
+    normalized.finale_titles = Array.isArray(normalized.finale_titles)
+      ? normalized.finale_titles
+      : [];
+    return normalized;
   }
 
-  function cacheState(row) {
-    stateCache = normalizeState(row);
-    hasFetchedState = true;
-    return stateCache;
+  function cachePublicDisplay(row) {
+    publicDisplayCache = normalizePublicDisplay(row);
+    return publicDisplayCache;
   }
 
-  function getCachedState() {
-    return normalizeState(stateCache);
+  function getCachedPublicDisplay() {
+    return normalizePublicDisplay(publicDisplayCache);
   }
 
-  function buildTimerData(state) {
-    const safeState = state || {};
+  function buildTimerData(source) {
+    const safeSource = source || {};
     return {
-      state: safeState.timer_state || 'reset',
-      remain: Number.isFinite(safeState.timer_remain_secs) ? safeState.timer_remain_secs : 0,
-      lastAction: safeState.timer_last_action_at || new Date().toISOString()
+      state: safeSource.timer_state || 'reset',
+      remain: Number.isFinite(safeSource.timer_remain_secs) ? safeSource.timer_remain_secs : 0,
+      lastAction: safeSource.timer_last_action_at || new Date().toISOString()
     };
   }
 
@@ -70,21 +75,100 @@
     return Math.max(0, remain - Math.max(0, elapsed));
   }
 
-  async function fetchState() {
+  function buildDisplayPayloadFromPublicDisplay(row) {
+    const display = cachePublicDisplay(row);
+    const timer = buildTimerData(display);
+
+    if (display.status === 'finale') {
+      return {
+        status: 'finale',
+        titles: display.finale_titles,
+        timer: timer
+      };
+    }
+
+    if (display.status === 'show') {
+      return {
+        status: 'show',
+        teamId: display.team_id,
+        currentPage: display.current_page,
+        totalPages: display.total_pages,
+        title: display.title,
+        content: display.content,
+        timer: timer
+      };
+    }
+
+    if (display.status === 'nodata') {
+      return {
+        status: 'nodata',
+        teamId: display.team_id,
+        timer: timer
+      };
+    }
+
+    return {
+      status: 'waiting',
+      timer: timer
+    };
+  }
+
+  async function fetchPublicDisplay() {
     const { data, error } = await client
-      .from(config.stateTable)
+      .from(config.displayTable)
       .select('*')
-      .eq('id', config.stateRowId)
+      .eq('id', config.publicDisplayRowId)
       .maybeSingle();
 
     if (error) {
       throw error;
     }
 
-    return cacheState(data);
+    return cachePublicDisplay(data);
   }
 
-  async function fetchPages(teamId, options) {
+  function getAdminEndpoint(path) {
+    const safePath = path.charAt(0) === '/' ? path : '/' + path;
+    return config.url.replace(/\/$/, '') + '/functions/v1/' + config.adminFunctionName + safePath;
+  }
+
+  async function parseJsonResponse(response) {
+    try {
+      return await response.json();
+    } catch (error) {
+      return null;
+    }
+  }
+
+  async function callAdminApi(path, options) {
+    const settings = options || {};
+    const headers = Object.assign({}, settings.headers || {});
+
+    if (settings.accessToken) {
+      headers.Authorization = 'Bearer ' + settings.accessToken;
+    }
+
+    if (settings.body !== undefined) {
+      headers['Content-Type'] = 'application/json';
+    }
+
+    const response = await fetch(getAdminEndpoint(path), {
+      method: settings.method || 'GET',
+      headers: headers,
+      body: settings.body !== undefined ? JSON.stringify(settings.body) : undefined
+    });
+    const payload = await parseJsonResponse(response);
+
+    if (!response.ok) {
+      const error = new Error((payload && payload.error) || '관리 API 요청에 실패했습니다.');
+      error.status = response.status;
+      throw error;
+    }
+
+    return payload;
+  }
+
+  async function adminFetchPages(teamId, accessToken, options) {
     if (!teamId) {
       return [];
     }
@@ -96,250 +180,52 @@
       return pagesCache.get(cacheKey);
     }
 
-    const { data, error } = await client
-      .from(config.pagesTable)
-      .select('*')
-      .eq('team_id', teamId)
-      .order('page_no', { ascending: true });
-
-    if (error) {
-      throw error;
-    }
-
-    const pages = data || [];
+    const payload = await callAdminApi('/pages?teamId=' + encodeURIComponent(teamId), {
+      accessToken: accessToken
+    });
+    const pages = payload && Array.isArray(payload.pages) ? payload.pages : [];
     pagesCache.set(cacheKey, pages);
     return pages;
-  }
-
-  async function fetchAllTitles(options) {
-    const force = Boolean(options && options.force);
-
-    if (!force && Array.isArray(titlesCache)) {
-      return titlesCache;
-    }
-
-    const { data, error } = await client
-      .from(config.pagesTable)
-      .select('team_id, page_no, title')
-      .order('team_id', { ascending: true })
-      .order('page_no', { ascending: true });
-
-    if (error) {
-      throw error;
-    }
-
-    titlesCache = (data || []).filter(function (row) {
-      return row.title;
-    });
-
-    return titlesCache;
   }
 
   function invalidateTeamPages(teamId) {
     if (teamId) {
       pagesCache.delete(String(teamId));
     }
-
-    titlesCache = null;
   }
 
   function invalidateAllPages() {
     pagesCache.clear();
-    titlesCache = null;
   }
 
-  function getCachedPages(teamId) {
-    if (!teamId) {
-      return null;
-    }
-
-    return pagesCache.get(String(teamId)) || null;
-  }
-
-  function getCachedTitles() {
-    return Array.isArray(titlesCache) ? titlesCache : null;
-  }
-
-  async function savePages(teamId, pagesData) {
-    const rows = pagesData.map(function (page, index) {
-      return {
-        team_id: teamId,
-        page_no: index + 1,
-        title: page.title,
-        content: page.content
-      };
+  async function adminSavePages(teamId, pagesData, accessToken) {
+    const payload = await callAdminApi('/pages', {
+      method: 'POST',
+      accessToken: accessToken,
+      body: {
+        teamId: teamId,
+        pages: pagesData
+      }
     });
-
-    const { error: upsertError } = await client
-      .from(config.pagesTable)
-      .upsert(rows, { onConflict: 'team_id,page_no' });
-
-    if (upsertError) {
-      throw upsertError;
-    }
-
-    const { error: deleteError } = await client
-      .from(config.pagesTable)
-      .delete()
-      .eq('team_id', teamId)
-      .gt('page_no', rows.length);
-
-    if (deleteError) {
-      throw deleteError;
-    }
 
     invalidateTeamPages(teamId);
+    return payload;
   }
 
-  async function setState(partialState) {
-    const currentState = hasFetchedState ? getCachedState() : await fetchState();
-    const nextState = Object.assign({}, currentState, partialState, {
-      id: config.stateRowId,
-      updated_at: new Date().toISOString()
-    });
-
-    const { data, error } = await client
-      .from(config.stateTable)
-      .update(nextState)
-      .eq('id', config.stateRowId)
-      .select('*')
-      .maybeSingle();
-
-    if (error) {
-      throw error;
-    }
-
-    if (data) {
-      return cacheState(data);
-    }
-
-    const { data: upsertedData, error: upsertError } = await client
-      .from(config.stateTable)
-      .upsert(nextState)
-      .select('*')
-      .single();
-
-    if (upsertError) {
-      throw upsertError;
-    }
-
-    return cacheState(upsertedData);
-  }
-
-  function buildDisplayPayloadFromStateSync(state) {
-    const normalizedState = cacheState(state);
-    const timer = buildTimerData(normalizedState);
-
-    if (normalizedState.mode === 'finale') {
-      const titles = getCachedTitles();
-
-      if (!titles) {
-        return null;
+  async function adminSetState(partialState, accessToken) {
+    const payload = await callAdminApi('/state', {
+      method: 'POST',
+      accessToken: accessToken,
+      body: {
+        state: partialState
       }
-
-      return {
-        status: 'finale',
-        titles: titles.map(function (row) {
-          return {
-            team: row.team_id,
-            title: row.title
-          };
-        }),
-        timer: timer
-      };
-    }
-
-    if (normalizedState.mode !== 'show' || !normalizedState.current_team_id) {
-      return {
-        status: 'waiting',
-        timer: timer
-      };
-    }
-
-    const pages = getCachedPages(normalizedState.current_team_id);
-
-    if (!pages) {
-      return null;
-    }
-
-    if (!pages.length) {
-      return {
-        status: 'nodata',
-        teamId: normalizedState.current_team_id,
-        timer: timer
-      };
-    }
-
-    const pageMatch = pages.find(function (page) {
-      return page.page_no === normalizedState.current_page_no;
-    }) || pages[0];
-
-    return {
-      status: 'show',
-      teamId: normalizedState.current_team_id,
-      currentPage: pageMatch.page_no,
-      totalPages: pages.length,
-      title: pageMatch.title,
-      content: pageMatch.content,
-      timer: timer
-    };
-  }
-
-  async function fetchDisplayPayloadForState(state, options) {
-    const normalizedState = cacheState(state);
-    const timer = buildTimerData(normalizedState);
-
-    if (normalizedState.mode === 'finale') {
-      const titles = await fetchAllTitles({ force: Boolean(options && options.forceTitles) });
-      return {
-        status: 'finale',
-        titles: titles.map(function (row) {
-          return {
-            team: row.team_id,
-            title: row.title
-          };
-        }),
-        timer: timer
-      };
-    }
-
-    if (normalizedState.mode !== 'show' || !normalizedState.current_team_id) {
-      return {
-        status: 'waiting',
-        timer: timer
-      };
-    }
-
-    const pages = await fetchPages(normalizedState.current_team_id, {
-      force: Boolean(options && options.forcePages)
     });
 
-    if (!pages.length) {
-      return {
-        status: 'nodata',
-        teamId: normalizedState.current_team_id,
-        timer: timer
-      };
+    if (payload && payload.publicDisplay) {
+      cachePublicDisplay(payload.publicDisplay);
     }
 
-    const pageMatch = pages.find(function (page) {
-      return page.page_no === normalizedState.current_page_no;
-    }) || pages[0];
-
-    return {
-      status: 'show',
-      teamId: normalizedState.current_team_id,
-      currentPage: pageMatch.page_no,
-      totalPages: pages.length,
-      title: pageMatch.title,
-      content: pageMatch.content,
-      timer: timer
-    };
-  }
-
-  async function fetchDisplayPayload(options) {
-    const state = await fetchState();
-    return fetchDisplayPayloadForState(state, options);
+    return payload;
   }
 
   function subscribeToPresentationChanges(channelName, callback) {
@@ -350,16 +236,7 @@
         {
           event: '*',
           schema: 'public',
-          table: config.stateTable
-        },
-        callback
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: config.pagesTable
+          table: config.displayTable
         },
         callback
       )
@@ -377,19 +254,15 @@
   window.PresentationStore = {
     client: client,
     config: config,
-    fetchState: fetchState,
-    fetchPages: fetchPages,
-    fetchAllTitles: fetchAllTitles,
-    savePages: savePages,
-    setState: setState,
-    fetchDisplayPayload: fetchDisplayPayload,
-    fetchDisplayPayloadForState: fetchDisplayPayloadForState,
-    buildDisplayPayloadFromStateSync: buildDisplayPayloadFromStateSync,
+    fetchPublicDisplay: fetchPublicDisplay,
+    getCachedPublicDisplay: getCachedPublicDisplay,
+    hydratePublicDisplay: cachePublicDisplay,
+    buildDisplayPayloadFromPublicDisplay: buildDisplayPayloadFromPublicDisplay,
     buildTimerData: buildTimerData,
     computeRemainingSeconds: computeRemainingSeconds,
-    getCachedState: getCachedState,
-    hydrateState: cacheState,
-    getCachedPages: getCachedPages,
+    adminFetchPages: adminFetchPages,
+    adminSavePages: adminSavePages,
+    adminSetState: adminSetState,
     invalidateTeamPages: invalidateTeamPages,
     invalidateAllPages: invalidateAllPages,
     subscribeToPresentationChanges: subscribeToPresentationChanges,

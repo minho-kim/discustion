@@ -3,12 +3,12 @@ window.PRESENTATION_ADMIN_CONFIG = Object.freeze({
   rememberMinutes: 480,
   pages: Object.freeze({
     input: Object.freeze({
-      pin: '1111',
-      storageKey: 'discussion_presentation_input_unlock_until'
+      scope: 'input',
+      storageKey: 'discussion_presentation_input_admin_session'
     }),
     control: Object.freeze({
-      pin: '3333',
-      storageKey: 'discussion_presentation_control_unlock_until'
+      scope: 'control',
+      storageKey: 'discussion_presentation_control_admin_session'
     })
   })
 });
