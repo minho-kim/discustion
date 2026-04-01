@@ -1030,6 +1030,8 @@
     <div class="opening-reorder-row">
       <div class="opening-reorder-copy">선택한 슬라이드의 순서를 여기서 바로 바꿀 수 있습니다.</div>
       <div class="opening-reorder-actions">
+        <button id="addOpeningSlideBtn" class="secondary-btn compact" onclick="addOpeningSlideAfterSelected()">선택 다음에 추가</button>
+        <button id="deleteOpeningSlideBtn" class="secondary-btn compact" onclick="requestDeleteSelectedOpeningSlide()">선택 슬라이드 삭제</button>
         <button id="moveOpeningFirstBtn" class="secondary-btn compact" onclick="moveSelectedOpeningSlide('first')">맨 앞으로</button>
         <button id="moveOpeningPrevBtn" class="secondary-btn compact" onclick="moveSelectedOpeningSlide('prev')">← 한 칸</button>
         <button id="moveOpeningNextBtn" class="secondary-btn compact" onclick="moveSelectedOpeningSlide('next')">한 칸 →</button>
@@ -1382,15 +1384,78 @@
       return openingSlidesDraft[selectedOpeningSlideNo - 1] || { title: '', body: '', note: '' };
     }
 
+    function createEmptyOpeningSlide() {
+      return {
+        title: '',
+        body: '',
+        note: ''
+      };
+    }
+
     function updateOpeningMoveButtons() {
       const total = Math.max(1, openingSlidesDraft.length);
       const isFirst = selectedOpeningSlideNo <= 1;
       const isLast = selectedOpeningSlideNo >= total;
 
+      document.getElementById('addOpeningSlideBtn').disabled = false;
+      document.getElementById('deleteOpeningSlideBtn').disabled = total <= 1;
       document.getElementById('moveOpeningFirstBtn').disabled = isFirst;
       document.getElementById('moveOpeningPrevBtn').disabled = isFirst;
       document.getElementById('moveOpeningNextBtn').disabled = isLast;
       document.getElementById('moveOpeningLastBtn').disabled = isLast;
+    }
+
+    function addOpeningSlideAfterSelected() {
+      const insertIndex = clampOpeningSlideNumber(selectedOpeningSlideNo);
+      openingSlidesDraft.splice(insertIndex, 0, createEmptyOpeningSlide());
+      selectedOpeningSlideNo = insertIndex + 1;
+      populateOpeningEditor();
+      syncOpeningDirtyState();
+      flashNotice('success', selectedOpeningSlideNo + '번째 위치에 새 메인 PPT 슬라이드를 추가했습니다.', 1800);
+    }
+
+    function requestDeleteSelectedOpeningSlide() {
+      if (openingSlidesDraft.length <= 1) {
+        flashNotice('warning', '메인 PPT는 최소 1장의 슬라이드가 필요합니다.');
+        return;
+      }
+
+      const slideNo = clampOpeningSlideNumber(selectedOpeningSlideNo);
+      const slide = getSelectedOpeningSlide();
+      const title = slide.title ? ' [' + slide.title + ']' : '';
+
+      setInlineNotice(
+        'danger',
+        slideNo + '번째 메인 PPT 슬라이드' + title + '를 삭제합니다. 되돌릴 수 없습니다.',
+        [
+          {
+            label: '삭제 실행',
+            tone: 'danger',
+            onClick: function () {
+              deleteSelectedOpeningSlide();
+            }
+          },
+          {
+            label: '취소',
+            tone: 'secondary',
+            onClick: function () {}
+          }
+        ]
+      );
+    }
+
+    function deleteSelectedOpeningSlide() {
+      if (openingSlidesDraft.length <= 1) {
+        flashNotice('warning', '메인 PPT는 최소 1장의 슬라이드가 필요합니다.');
+        return;
+      }
+
+      const deleteIndex = clampOpeningSlideNumber(selectedOpeningSlideNo) - 1;
+      openingSlidesDraft.splice(deleteIndex, 1);
+      selectedOpeningSlideNo = Math.min(deleteIndex + 1, openingSlidesDraft.length);
+      populateOpeningEditor();
+      syncOpeningDirtyState();
+      flashNotice('success', '선택한 메인 PPT 슬라이드를 삭제했습니다.', 1800);
     }
 
     function moveSelectedOpeningSlide(direction) {
