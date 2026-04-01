@@ -385,6 +385,27 @@
       gap: 10px;
     }
 
+    .opening-reorder-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 14px;
+    }
+
+    .opening-reorder-copy {
+      color: #9fb0c2;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .opening-reorder-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
     .opening-slide-btn {
       display: flex;
       flex-direction: column;
@@ -956,7 +977,7 @@
       <h2>현재 송출 화면</h2>
       <div class="section-header-actions">
         <button class="secondary-btn compact" onclick="openDisplayPage()">메인 출력 열기</button>
-        <button class="secondary-btn compact" onclick="presentOpeningSlides()">오프닝 화면 송출</button>
+        <button class="secondary-btn compact" onclick="presentOpeningSlides()">메인 PPT 송출</button>
         <button id="quickPresentSelectedBtn" class="secondary-btn compact primary-action" onclick="presentSelectedTeam()" disabled>선택 조 발표 송출</button>
       </div>
     </div>
@@ -977,7 +998,7 @@
       <div class="page-info"><span id="curP">-</span> / <span id="totalP">-</span></div>
       <button id="liveNextPageBtn" class="page-btn" onclick="movePage(1)">현재 송출 다음 장 ▶</button>
     </div>
-    <p class="selection-summary">오프닝이 나가고 있을 때 발표를 시작하려면 `선택 조 발표 송출`, 발표 후 다시 오프닝으로 돌아가려면 `오프닝 화면 송출`을 누르면 됩니다.</p>
+    <p class="selection-summary">메인 PPT가 나가고 있을 때 발표를 시작하려면 `선택 조 발표 송출`, 발표 후 다시 메인 PPT로 돌아가려면 `메인 PPT 송출`을 누르면 됩니다.</p>
     <button class="btn-waiting" onclick="setWaitingMode()">대기화면으로 전환</button>
     <div class="waiting-editor">
       <label for="waitingMessageInput">대기화면 문구</label>
@@ -991,24 +1012,33 @@
 
   <div class="panel opening-panel">
     <div class="section-header">
-      <h2>1. 오프닝 화면</h2>
+      <h2>1. 메인 PPT</h2>
       <div class="section-header-actions">
-        <button id="openingToggleBtn" class="secondary-btn compact" onclick="toggleOpeningPanel()">오프닝 펼치기</button>
+        <button id="openingToggleBtn" class="secondary-btn compact" onclick="toggleOpeningPanel()">메인 PPT 펼치기</button>
       </div>
     </div>
     <div id="openingPanelBody" class="opening-panel-body" hidden>
     <div class="panel-tools">
-      <button class="secondary-btn primary-action" onclick="presentOpeningSlides()">현재 편집 슬라이드부터 오프닝 화면 송출</button>
-      <button class="secondary-btn" onclick="saveOpeningSlides()">오프닝 텍스트 저장</button>
+      <button class="secondary-btn primary-action" onclick="presentOpeningSlides()">현재 편집 슬라이드부터 메인 PPT 송출</button>
+      <button class="secondary-btn" onclick="saveOpeningSlides()">메인 PPT 텍스트 저장</button>
     </div>
     <div class="opening-status-row">
-      <div id="openingEditorStatus" class="opening-status-pill">오프닝 텍스트가 서버와 동기화되어 있습니다.</div>
-      <div id="openingLiveStatus" class="opening-status-pill">오프닝은 아직 메인 화면에 송출되지 않았습니다.</div>
+      <div id="openingEditorStatus" class="opening-status-pill">메인 PPT 텍스트가 서버와 동기화되어 있습니다.</div>
+      <div id="openingLiveStatus" class="opening-status-pill">메인 PPT는 아직 메인 화면에 송출되지 않았습니다.</div>
     </div>
     <div id="openingSlideGrid" class="opening-slide-grid"></div>
+    <div class="opening-reorder-row">
+      <div class="opening-reorder-copy">선택한 슬라이드의 순서를 여기서 바로 바꿀 수 있습니다.</div>
+      <div class="opening-reorder-actions">
+        <button id="moveOpeningFirstBtn" class="secondary-btn compact" onclick="moveSelectedOpeningSlide('first')">맨 앞으로</button>
+        <button id="moveOpeningPrevBtn" class="secondary-btn compact" onclick="moveSelectedOpeningSlide('prev')">← 한 칸</button>
+        <button id="moveOpeningNextBtn" class="secondary-btn compact" onclick="moveSelectedOpeningSlide('next')">한 칸 →</button>
+        <button id="moveOpeningLastBtn" class="secondary-btn compact" onclick="moveSelectedOpeningSlide('last')">맨 뒤로</button>
+      </div>
+    </div>
     <div class="opening-editor-shell">
       <label for="openingTitleInput">슬라이드 제목</label>
-      <input id="openingTitleInput" type="text" placeholder="오프닝 슬라이드 제목을 입력해 주세요.">
+      <input id="openingTitleInput" type="text" placeholder="메인 PPT 슬라이드 제목을 입력해 주세요.">
       <div id="openingTitleNote" class="opening-editor-note">현재 0자 / 권장 36자 이하</div>
 
       <label for="openingBodyInput">본문</label>
@@ -1020,9 +1050,9 @@
       <div id="openingNoteNote" class="opening-editor-note">현재 0자 / 권장 120자 이하</div>
     </div>
     <div class="opening-preview-shell">
-      <p class="page-caption">메인 화면에 내보내기 전에 선택한 오프닝 슬라이드를 이곳에서 먼저 확인할 수 있습니다.</p>
-      <div id="openingPreviewTitle" class="opening-preview-title">오프닝 슬라이드를 불러오는 중입니다.</div>
-      <div id="openingPreviewBody" class="opening-preview-body">오프닝 본문이 여기에 표시됩니다.</div>
+      <p class="page-caption">메인 화면에 내보내기 전에 선택한 메인 PPT 슬라이드를 이곳에서 먼저 확인할 수 있습니다.</p>
+      <div id="openingPreviewTitle" class="opening-preview-title">메인 PPT 슬라이드를 불러오는 중입니다.</div>
+      <div id="openingPreviewBody" class="opening-preview-body">메인 PPT 본문이 여기에 표시됩니다.</div>
       <div id="openingPreviewNote" class="opening-preview-note" style="display:none;"></div>
     </div>
     </div>
@@ -1091,8 +1121,8 @@
     <div class="shortcut-list">
       <div class="shortcut-item"><kbd>1~9, 0</kbd>선택 조를 미리보기로 불러옵니다. `0`은 10조입니다.</div>
       <div class="shortcut-item"><kbd>Enter</kbd>현재 선택한 조를 1페이지부터 송출합니다.</div>
-      <div class="shortcut-item"><kbd>O</kbd>현재 편집 중인 오프닝 슬라이드부터 송출합니다.</div>
-      <div class="shortcut-item"><kbd>← / →</kbd>현재 송출 중인 발표 페이지 또는 오프닝 슬라이드를 이전/다음 장으로 넘깁니다.</div>
+      <div class="shortcut-item"><kbd>O</kbd>현재 편집 중인 메인 PPT 슬라이드부터 송출합니다.</div>
+      <div class="shortcut-item"><kbd>← / →</kbd>현재 송출 중인 발표 페이지 또는 메인 PPT 슬라이드를 이전/다음 장으로 넘깁니다.</div>
       <div class="shortcut-item"><kbd>Space</kbd>타이머를 시작하거나 일시정지합니다.</div>
       <div class="shortcut-item"><kbd>R</kbd>입력한 분 수 기준으로 타이머를 초기화합니다.</div>
       <div class="shortcut-item"><kbd>W</kbd>현재 대기화면 문구로 대기화면으로 전환합니다.</div>
@@ -1160,7 +1190,7 @@
       const body = document.getElementById('openingPanelBody');
       const button = document.getElementById('openingToggleBtn');
       body.hidden = Boolean(isCollapsed);
-      button.innerText = isCollapsed ? '오프닝 펼치기' : '오프닝 접기';
+      button.innerText = isCollapsed ? '메인 PPT 펼치기' : '메인 PPT 접기';
       localStorage.setItem(OPENING_PANEL_STORAGE_KEY, isCollapsed ? '1' : '0');
     }
 
@@ -1287,6 +1317,7 @@
       renderTeamButtons();
       renderSelectedPreview();
       renderOpeningSlideButtons();
+      updateOpeningMoveButtons();
       updateOpeningEditorStatus();
     }
 
@@ -1351,6 +1382,44 @@
       return openingSlidesDraft[selectedOpeningSlideNo - 1] || { title: '', body: '', note: '' };
     }
 
+    function updateOpeningMoveButtons() {
+      const total = Math.max(1, openingSlidesDraft.length);
+      const isFirst = selectedOpeningSlideNo <= 1;
+      const isLast = selectedOpeningSlideNo >= total;
+
+      document.getElementById('moveOpeningFirstBtn').disabled = isFirst;
+      document.getElementById('moveOpeningPrevBtn').disabled = isFirst;
+      document.getElementById('moveOpeningNextBtn').disabled = isLast;
+      document.getElementById('moveOpeningLastBtn').disabled = isLast;
+    }
+
+    function moveSelectedOpeningSlide(direction) {
+      const total = Math.max(1, openingSlidesDraft.length);
+      const fromIndex = clampOpeningSlideNumber(selectedOpeningSlideNo) - 1;
+      let targetIndex = fromIndex;
+
+      if (direction === 'first') {
+        targetIndex = 0;
+      } else if (direction === 'prev') {
+        targetIndex = Math.max(0, fromIndex - 1);
+      } else if (direction === 'next') {
+        targetIndex = Math.min(total - 1, fromIndex + 1);
+      } else if (direction === 'last') {
+        targetIndex = total - 1;
+      }
+
+      if (targetIndex === fromIndex) {
+        return;
+      }
+
+      const movedSlide = openingSlidesDraft.splice(fromIndex, 1)[0];
+      openingSlidesDraft.splice(targetIndex, 0, movedSlide);
+      selectedOpeningSlideNo = targetIndex + 1;
+      populateOpeningEditor();
+      syncOpeningDirtyState();
+      flashNotice('info', '선택한 메인 PPT 슬라이드 순서를 변경했습니다.', 1800);
+    }
+
     function formatOpeningPreviewText(slide) {
       if (!slide) {
         return '';
@@ -1400,15 +1469,15 @@
         ? 'opening-status-pill dirty'
         : 'opening-status-pill';
       editorStatus.innerText = openingSlidesDirty
-        ? '오프닝 텍스트에 저장 전 수정이 있습니다. 저장하거나 바로 송출할 수 있습니다.'
-        : '오프닝 텍스트가 서버와 동기화되어 있습니다.';
+        ? '메인 PPT 텍스트에 저장 전 수정이 있습니다. 저장하거나 바로 송출할 수 있습니다.'
+        : '메인 PPT 텍스트가 서버와 동기화되어 있습니다.';
 
       if (currentDisplayStatus === 'opening') {
         liveStatus.className = 'opening-status-pill live';
-        liveStatus.innerText = '현재 메인 화면은 오프닝 ' + currentPageNo + ' / ' + totalPageCount + '장을 송출 중입니다.';
+        liveStatus.innerText = '현재 메인 화면은 메인 PPT ' + currentPageNo + ' / ' + totalPageCount + '장을 송출 중입니다.';
       } else {
         liveStatus.className = 'opening-status-pill';
-        liveStatus.innerText = '오프닝은 아직 메인 화면에 송출되지 않았습니다.';
+        liveStatus.innerText = '메인 PPT는 아직 메인 화면에 송출되지 않았습니다.';
       }
     }
 
@@ -1450,7 +1519,7 @@
       const slide = getSelectedOpeningSlide();
       const note = slide.note || '';
 
-      document.getElementById('openingPreviewTitle').innerText = slide.title || '제목을 입력해 주세요.';
+      document.getElementById('openingPreviewTitle').innerText = slide.title || '메인 PPT 제목을 입력해 주세요.';
       document.getElementById('openingPreviewBody').innerText = formatOpeningPreviewText(slide);
       document.getElementById('openingPreviewNote').innerText = note;
       document.getElementById('openingPreviewNote').style.display = note ? 'block' : 'none';
@@ -1685,11 +1754,11 @@
           ? ((slide.body || '') ? slide.body + '\n\n' + slide.note : slide.note)
           : (slide.body || '');
 
-        badge.innerText = '오프닝';
+        badge.innerText = '메인 PPT';
         meta.innerText = payload.currentPage + '/' + payload.totalPages + ' 슬라이드가 메인 화면에 표시되고 있습니다.';
-        summary.innerText = '화면 모드: 오프닝';
-        title.innerText = slide.title || '오프닝 슬라이드';
-        content.innerText = previewText || '오프닝 본문이 없습니다.';
+        summary.innerText = '화면 모드: 메인 PPT';
+        title.innerText = slide.title || '메인 PPT 슬라이드';
+        content.innerText = previewText || '메인 PPT 본문이 없습니다.';
         renderFinalePreview([]);
         return;
       }
@@ -2007,9 +2076,9 @@
         }
 
         populateOpeningEditor();
-        flashNotice('success', '오프닝 텍스트를 저장했습니다.');
+        flashNotice('success', '메인 PPT 텍스트를 저장했습니다.');
       } catch (error) {
-        handleAdminError(error, '오프닝 텍스트 저장 실패');
+        handleAdminError(error, '메인 PPT 텍스트 저장 실패');
       }
     }
 
@@ -2032,9 +2101,9 @@
         }
 
         populateOpeningEditor();
-        flashNotice('success', selectedOpeningSlideNo + '번째 오프닝 슬라이드부터 송출했습니다.');
+        flashNotice('success', selectedOpeningSlideNo + '번째 메인 PPT 슬라이드부터 송출했습니다.');
       } catch (error) {
-        handleAdminError(error, '오프닝 송출 실패');
+        handleAdminError(error, '메인 PPT 송출 실패');
       }
     }
 

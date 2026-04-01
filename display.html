@@ -305,7 +305,7 @@
         <div id="openingPageLabel" class="opening-page">1 / 12</div>
       </div>
       <div class="opening-card">
-        <div class="opening-eyebrow">Opening Sequence</div>
+        <div class="opening-eyebrow">Main PPT</div>
         <h1 id="openingTitleLabel" class="opening-title">용인시민 100인 연석회의</h1>
         <div id="openingBodyLabel" class="opening-body">시민의 지혜를 모으는 자리에 오신 것을 환영합니다.</div>
         <div id="openingNoteLabel" class="opening-note" style="display:none;"></div>
@@ -507,7 +507,7 @@
           : 0;
         openingStage.style.backgroundPositionX = progress + '%';
         document.getElementById('openingPageLabel').innerText = res.currentPage + ' / ' + res.totalPages;
-        document.getElementById('openingTitleLabel').innerText = slide.title || '오프닝 슬라이드';
+        document.getElementById('openingTitleLabel').innerText = slide.title || '메인 PPT 슬라이드';
         document.getElementById('openingBodyLabel').innerText = slide.body || '';
         document.getElementById('openingNoteLabel').innerText = note;
         document.getElementById('openingNoteLabel').style.display = note ? 'block' : 'none';
